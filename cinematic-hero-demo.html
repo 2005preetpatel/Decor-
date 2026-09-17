@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cinematic Scroll Hero — GSAP ScrollTrigger Demo</title>
+<style>
+  /* ============================================================
+     RESET / BASE
+     ============================================================ */
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ background:#0a0a0a; color:#f4f1ea; font-family:'Segoe UI', Arial, sans-serif; overflow-x:hidden; }
+
+  /* ============================================================
+     1. CINEMATIC HERO — pinned section
+     The section itself is what ScrollTrigger pins. Its actual
+     scrollable "length" is created by ScrollTrigger's `end` value
+     (end: '+=300%' below) — you do NOT need extra empty divs for
+     scroll space, ScrollTrigger adds that spacing automatically
+     when pin:true.
+     ============================================================ */
+  .cinema-hero{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    background:#000;
+  }
+
+  .hero-stage{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    /* perspective makes the door's rotateY read as real 3D depth */
+    perspective:1400px;
+    overflow:hidden;
+  }
+
+  /* Base room photo — this is the element GSAP scales 1 -> 1.4
+     to simulate the camera pushing into the doorway. */
+  .room-bg{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    transform-origin:50% 42%; /* roughly the door's vertical position */
+    will-change:transform;
+  }
+
+  /* Chandeliers are separate layered PNGs (transparent background)
+     positioned to sit exactly over the two chandeliers in the base
+     photo. Adjust left/top/width per your real image. */
+  .chandelier{
+    position:absolute;
+    top:0;
+    width:22%;
+    max-width:260px;
+    pointer-events:none;
+    filter:brightness(0.35) drop-shadow(0 0 0px rgba(255,214,140,0));
+    opacity:0.55;
+    will-change:filter, opacity;
+  }
+  .chandelier-1{ left:34%; }
+  .chandelier-2{ left:52%; }
+
+  /* Door — a separate PNG (or flat color panel) placed over the
+     center door/window bank in the base photo. transform-origin is
+     set to the LEFT edge so rotateY reads as a door swinging open
+     on a hinge, like walking through it. */
+  .door{
+    position:absolute;
+    left:50%;
+    top:18%;
+    width:22%;
+    height:64%;
+    transform:translateX(-50%);
+    transform-style:preserve-3d;
+    pointer-events:none;
+  }
+  .door img{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    transform-origin:0% 50%; /* hinge on the left edge */
+    will-change:transform;
+    backface-visibility:hidden;
+  }
+
+  /* Full white overlay that fades in once the door is fully open,
+     then the section unpins into the real page content. */
+  .whiteout{
+    position:absolute;
+    inset:0;
+    background:#f4f1ea;
+    opacity:0;
+    pointer-events:none;
+    will-change:opacity;
+  }
+
+  .hero-caption{
+    position:absolute;
+    left:50%;
+    bottom:6%;
+    transform:translateX(-50%);
+    z-index:5;
+    font-size:0.75rem;
+    letter-spacing:0.35em;
+    text-transform:uppercase;
+    color:rgba(244,241,234,0.7);
+    pointer-events:none;
+  }
+
+  /* ============================================================
+     2. STICKY NAVBAR — slides/fades in once the door sequence ends
+     ============================================================ */
+  .site-nav{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px 6%;
+    background:rgba(10,10,10,0.85);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(244,241,234,0.08);
+    opacity:0;
+    transform:translateY(-100%);
+    will-change:transform, opacity;
+  }
+  .site-nav .logo{
+    font-size:1.1rem;
+    letter-spacing:0.08em;
+    font-weight:600;
+  }
+  .site-nav ul{
+    list-style:none;
+    display:flex;
+    gap:36px;
+  }
+  .site-nav a{
+    color:rgba(244,241,234,0.75);
+    text-decoration:none;
+    font-size:0.8rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    transition:color 0.25s ease;
+  }
+  .site-nav a:hover{ color:#f4f1ea; }
+
+  /* ============================================================
+     3. CONTENT SECTIONS — fade-up reveal on scroll
+     ============================================================ */
+  main{ position:relative; z-index:2; background:#f4f1ea; color:#141414; }
+
+  section.content-section{
+    max-width:1100px;
+    margin:0 auto;
+    padding:120px 6%;
+  }
+
+  .reveal{ opacity:0; transform:translateY(40px); }
+
+  .content-section h2{
+    font-size:clamp(2rem, 4vw, 3.2rem);
+    margin-bottom:16px;
+    letter-spacing:-0.01em;
+  }
+  .content-section p.lead{
+    max-width:620px;
+    font-size:1rem;
+    line-height:1.7;
+    color:#4a4a4a;
+    margin-bottom:56px;
+  }
+
+  /* Work grid */
+  .work-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:24px;
+  }
+  .work-grid .work-item{
+    aspect-ratio:4/5;
+    background:#dcd6c8;
+    border-radius:14px;
+    display:flex;
+    align-items:flex-end;
+    padding:18px;
+    font-size:0.8rem;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:#141414;
+  }
+
+  /* About */
+  .about-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:60px;
+    align-items:center;
+  }
+  .about-grid img{
+    width:100%;
+    border-radius:16px;
+    aspect-ratio:4/5;
+    object-fit:cover;
+  }
+
+  /* Contact */
+  .contact-section{ background:#141414; color:#f4f1ea; }
+  .contact-form{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    max-width:480px;
+  }
+  .contact-form input,
+  .contact-form textarea{
+    background:transparent;
+    border:none;
+    border-bottom:1px solid rgba(244,241,234,0.3);
+    padding:12px 0;
+    color:#f4f1ea;
+    font-size:0.95rem;
+    outline:none;
+  }
+  .contact-form button{
+    margin-top:12px;
+    align-self:flex-start;
+    padding:14px 32px;
+    border-radius:999px;
+    border:none;
+    background:#f4f1ea;
+    color:#141414;
+    font-size:0.8rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+
+  /* ============================================================
+     4. RESPONSIVE — mobile gets a shorter pinned scroll distance
+     (handled in JS via matchMedia) plus simpler grids here.
+     ============================================================ */
+  @media (max-width:768px){
+    .work-grid{ grid-template-columns:repeat(2, 1fr); }
+    .about-grid{ grid-template-columns:1fr; }
+    .chandelier{ width:34%; }
+    .door{ width:44%; top:16%; height:60%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     CINEMATIC HERO
+     Replace room-bg.jpg / chandelier-1.png / chandelier-2.png /
+     door.png with your real transparent-background assets.
+     ========================================================= -->
+<section class="cinema-hero" id="cinemaHero">
+    <div class="hero-stage" id="heroStage">
+        <img class="room-bg" id="roomBg" src="room-bg.jpg" alt="Grand ballroom">
+
+        <img class="chandelier chandelier-1" id="chandelier1" src="chandelier-1.png" alt="">
+        <img class="chandelier chandelier-2" id="chandelier2" src="chandelier-2.png" alt="">
+
+        <div class="door" id="door">
+            <img src="door.png" alt="">
+        </div>
+
+        <div class="whiteout" id="whiteout"></div>
+    </div>
+
+    <p class="hero-caption">Scroll to walk in</p>
+</section>
+
+<!-- =========================================================
+     STICKY NAV — hidden until the door sequence finishes
+     ========================================================= -->
+<nav class="site-nav" id="siteNav">
+    <div class="logo">STUDIO</div>
+    <ul>
+        <li><a href="#cinemaHero">Home</a></li>
+        <li><a href="#work">Work</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+    </ul>
+</nav>
+
+<main>
+    <section id="work" class="content-section">
+        <h2 class="reveal">Selected Work</h2>
+        <p class="lead reveal">A collection of spaces, moments and stories we've helped bring to life.</p>
+        <div class="work-grid">
+            <div class="work-item reveal">Project One</div>
+            <div class="work-item reveal">Project Two</div>
+            <div class="work-item reveal">Project Three</div>
+            <div class="work-item reveal">Project Four</div>
+            <div class="work-item reveal">Project Five</div>
+            <div class="work-item reveal">Project Six</div>
+        </div>
+    </section>
+
+    <section id="about" class="content-section">
+        <div class="about-grid">
+            <div class="reveal">
+                <h2>About the Studio</h2>
+                <p class="lead" style="margin-bottom:0;">We design environments that feel considered from the moment you walk in — every material, every light, every angle chosen on purpose.</p>
+            </div>
+            <img class="reveal" src="room-bg.jpg" alt="Studio work">
+        </div>
+    </section>
+
+    <section id="contact" class="content-section contact-section">
+        <h2 class="reveal">Let's Talk</h2>
+        <p class="lead reveal" style="color:rgba(244,241,234,0.6);">Tell us about your space and where you want to take it.</p>
+        <form class="contact-form reveal" onsubmit="return false;">
+            <input type="text" placeholder="Name">
+            <input type="email" placeholder="Email">
+            <textarea rows="3" placeholder="Message"></textarea>
+            <button type="submit">Send</button>
+        </form>
+    </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+(function () {
+    gsap.registerPlugin(ScrollTrigger);
+
+    // ------------------------------------------------------------
+    // Helper: builds ONE flicker cycle (off -> on -> settled-on)
+    // for a chandelier image, added to the master timeline at a
+    // given start position (in timeline "units" — see scale note
+    // below the master timeline definition).
+    // ------------------------------------------------------------
+    function chandelierFlicker(tl, chandelierEl, startAt) {
+        tl.to(chandelierEl, {
+            filter: 'brightness(1.6) drop-shadow(0 0 18px rgba(255,214,140,0.9))',
+            opacity: 1,
+            duration: 0.35,
+            ease: 'power2.inOut'
+        }, startAt)
+          .to(chandelierEl, {
+            filter: 'brightness(0.7) drop-shadow(0 0 4px rgba(255,214,140,0.3))',
+            opacity: 0.75,
+            duration: 0.15,
+            ease: 'power1.inOut'
+        }, startAt + 0.35)
+          .to(chandelierEl, {
+            filter: 'brightness(1.3) drop-shadow(0 0 14px rgba(255,214,140,0.75))',
+            opacity: 0.95,
+            duration: 0.2,
+            ease: 'power2.out'
+        }, startAt + 0.5);
+    }
+
+    // ------------------------------------------------------------
+    // Helper: the door swinging open on its left-edge hinge,
+    // combined with a subtle perspective push (rotateY + slight
+    // scale) so it reads as opening toward the viewer.
+    // ------------------------------------------------------------
+    function doorOpen(tl, doorImgEl, startAt, endAt) {
+        tl.to(doorImgEl, {
+            rotateY: -108,
+            scaleX: 0.94,
+            duration: endAt - startAt,
+            ease: 'power2.inOut'
+        }, startAt);
+    }
+
+    // ------------------------------------------------------------
+    // Helper: the room background slowly zooming in, simulating
+    // the camera walking toward the doorway.
+    // ------------------------------------------------------------
+    function roomZoom(tl, roomEl, startAt, endAt) {
+        tl.to(roomEl, {
+            scale: 1.4,
+            duration: endAt - startAt,
+            ease: 'power2.inOut'
+        }, startAt);
+    }
+
+    // ------------------------------------------------------------
+    // Helper: fade to white once the door is fully open, right
+    // before the section unpins.
+    // ------------------------------------------------------------
+    function whiteoutFade(tl, whiteoutEl, startAt, endAt) {
+        tl.to(whiteoutEl, {
+            opacity: 1,
+            duration: endAt - startAt,
+            ease: 'power1.in'
+        }, startAt);
+    }
+
+    // ------------------------------------------------------------
+    // MASTER TIMELINE
+    // Scale note: with scrub:true, GSAP maps 0%-100% of the
+    // ScrollTrigger's scroll range directly onto the timeline's
+    // 0 -> totalDuration progress. We treat 1 timeline "unit" as
+    // 10% of scroll — so a tween positioned at 3 with duration 1
+    // plays during the 30%-40% window of the pinned scroll.
+    // ------------------------------------------------------------
+    function buildHeroTimeline(pinDistance) {
+        const tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: '#cinemaHero',
+                start: 'top top',
+                end: '+=' + pinDistance,
+                scrub: true,
+                pin: true,
+                anticipatePin: 1
+            }
+        });
+
+        const roomBg = document.getElementById('roomBg');
+        const doorImg = document.querySelector('#door img');
+        const whiteout = document.getElementById('whiteout');
+        const chandelier1 = document.getElementById('chandelier1');
+        const chandelier2 = document.getElementById('chandelier2');
+
+        // 10% - 20%: chandelier 1 flickers on
+        chandelierFlicker(tl, chandelier1, 1);
+        // 20% - 30%: chandelier 2 flickers on
+        chandelierFlicker(tl, chandelier2, 2);
+
+        // 10% - 90%: door opens + camera zooms in, scrubbed together
+        doorOpen(tl, doorImg, 1, 9);
+        roomZoom(tl, roomBg, 1, 9);
+
+        // 90% - 100%: fade to white as the door finishes opening
+        whiteoutFade(tl, whiteout, 9, 10);
+
+        return tl;
+    }
+
+    // ------------------------------------------------------------
+    // NAV REVEAL — slides + fades in once the hero has unpinned
+    // ------------------------------------------------------------
+    function initNavReveal() {
+        const nav = document.getElementById('siteNav');
+        ScrollTrigger.create({
+            trigger: '#cinemaHero',
+            start: 'bottom top',
+            onEnter: () => gsap.to(nav, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }),
+            onLeaveBack: () => gsap.to(nav, { opacity: 0, y: '-100%', duration: 0.4, ease: 'power2.in' })
+        });
+    }
+
+    // ------------------------------------------------------------
+    // CONTENT REVEAL — simple fade-up for every .reveal element
+    // ------------------------------------------------------------
+    function initContentReveal() {
+        gsap.utils.toArray('.reveal').forEach((el, i) => {
+            gsap.to(el, {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                ease: 'power2.out',
+                delay: (i % 6) * 0.05,
+                scrollTrigger: {
+                    trigger: el,
+                    start: 'top 85%',
+                    toggleActions: 'play none none reverse'
+                }
+            });
+        });
+    }
+
+    // ------------------------------------------------------------
+    // Responsive: shorter pinned scroll distance on mobile so the
+    // sequence doesn't feel endless on small screens. A plain
+    // conditional (rather than ScrollTrigger.matchMedia) avoids
+    // ever leaving a stale/duplicate ScrollTrigger behind if a
+    // breakpoint-crossing resize fires mid-session.
+    //
+    // The read of window.innerWidth is deferred to the `load` event
+    // rather than run inline — on a handful of embedded/preview
+    // contexts the viewport isn't reliably sized until every
+    // resource (including this page's images) has finished loading,
+    // and building the timeline too early can lock in the wrong
+    // pin distance for the page's lifetime.
+    // ------------------------------------------------------------
+    function getPinDistance() {
+        const w = window.innerWidth;
+        // A width of 0 (or anything absurdly small) means the
+        // viewport hasn't actually been measured yet rather than a
+        // genuinely narrow device — default to the desktop distance
+        // in that case instead of silently locking in "mobile".
+        return (w > 0 && w <= 768) ? '150%' : '300%';
+    }
+
+    window.addEventListener('load', () => {
+        buildHeroTimeline(getPinDistance());
+        initNavReveal();
+        initContentReveal();
+        ScrollTrigger.refresh();
+    });
+
+    // Recalculate pinned positions (not the pin distance) on resize —
+    // keeps the pinned art aligned without rebuilding the timeline.
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => ScrollTrigger.refresh(), 200);
+    });
+})();
+</script>
+</body>
+</html>

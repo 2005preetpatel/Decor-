@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Working files from the plate pipeline — regenerate with tools/make-plate.py
+assets/hero-*-check.png
