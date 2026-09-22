@@ -17,6 +17,18 @@
     --cream:#f6f1e7; --gold:#c9a24b; --gold-light:#efd79a;
   }
   html{ scroll-behavior:auto; }
+  /* The whole page, at the size it is meant to be read.
+
+     Everything was sized to be viewed at about 80% browser zoom. Dropping the
+     root from 16px to 12.8px is that 80%, applied once: every rem on the site
+     - type, padding, gaps, and the max-widths that set how wide the reel, the
+     gallery and the text columns run - comes down with it.
+
+     vw values are deliberately left alone. Browser zoom does not change them
+     in physical terms: at 80% the viewport reports proportionally more CSS
+     pixels, so a 5vw heading covers the same amount of screen either way.
+     Scaling them here would shrink the page past what zooming out did. */
+  html{ font-size:80%; }
   /* Cream, not the home page's navy: there is no hero here to sit behind, and
      a dark body would flash before the first paint of a cream page. */
   body{

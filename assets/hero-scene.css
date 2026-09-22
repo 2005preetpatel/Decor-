@@ -1962,7 +1962,7 @@
 .nav-link{
   position:relative;
   font-family:'Manrope',sans-serif;
-  font-size:10px;
+  font-size:8px;
   font-weight:500;
   text-transform:uppercase;
   letter-spacing:.26em;
@@ -2007,7 +2007,7 @@
   gap:0.533rem;
   margin-inline:auto;
 }
-.nav-compact .nav-link{ font-size:8.5px; letter-spacing:.11em; }
+.nav-compact .nav-link{ font-size:8px; letter-spacing:.1em; }
 .nav-compact .nav-link:hover span{ letter-spacing:.13em; }
 @media (min-width:768px){
   .nav-compact{ display:none; }
@@ -2055,7 +2055,7 @@
   border:1px solid var(--nav-ring);
   border-radius:9999px;
   font-family:'Manrope',sans-serif;
-  font-size:10px;
+  font-size:8px;
   font-weight:600;
   text-transform:uppercase;
   letter-spacing:.14em;
@@ -2065,7 +2065,7 @@
   transition:color .5s ease, border-color .5s ease;
 }
 @media (min-width:768px){
-  .nav-cta{ padding:.95em 1.7em; font-size:11px; }
+  .nav-cta{ padding:.95em 1.7em; font-size:8.8px; }
 }
 .nav-cta::before{
   content:'';

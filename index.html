@@ -85,6 +85,18 @@
      made the pinned hero stutter/detach mid-scroll. Anchor links below
      get their own smooth jump via JS instead. */
   html{scroll-behavior:auto;}
+  /* The whole page, at the size it is meant to be read.
+
+     Everything was sized to be viewed at about 80% browser zoom. Dropping the
+     root from 16px to 12.8px is that 80%, applied once: every rem on the site
+     - type, padding, gaps, and the max-widths that set how wide the reel, the
+     gallery and the text columns run - comes down with it.
+
+     vw values are deliberately left alone. Browser zoom does not change them
+     in physical terms: at 80% the viewport reports proportionally more CSS
+     pixels, so a 5vw heading covers the same amount of screen either way.
+     Scaling them here would shrink the page past what zooming out did. */
+  html{ font-size:80%; }
   body{font-family:'Manrope',sans-serif; background:var(--navy); color:var(--cream);}
   .font-display{font-family:'Cormorant Garamond','Times New Roman',serif;}
   .reveal{opacity:0; transform:translateY(30px); filter:blur(8px); transition:opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1), filter .9s cubic-bezier(.16,1,.3,1);}
