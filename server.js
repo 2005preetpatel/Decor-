@@ -27,7 +27,16 @@ const MIME = {
 http.createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/') urlPath = '/index.html';
-  const filePath = path.join(ROOT, urlPath);
+
+  // path.join collapses "..", so a request for /../../.ssh/id_rsa resolved
+  // to a real file outside ROOT and this server would have handed it over.
+  // Resolve first, then refuse anything that does not still sit under ROOT.
+  const filePath = path.resolve(ROOT, '.' + urlPath);
+  if (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
 
   fs.readFile(filePath, (err, data) => {
     if (err) {

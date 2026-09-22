@@ -1,0 +1,247 @@
+/* ============================================================ story page ==
+
+   A celebration, laid out the way the reference does it: a quiet banner, the
+   credits, then a long single column of large frames on cream.
+
+   Deliberately plain. The photographs are the content; anything decorative in
+   here competes with them. The only ornament is the champagne rule under the
+   names and the arrow on the next link.
+   ========================================================================= */
+
+.story{
+  --st-paper:   #f8f5ef;
+  --st-ink:     #2c2620;
+  --st-soft:    #6f665c;
+  --st-gold:    #a8873a;
+
+  display:block;
+  background:var(--st-paper);
+  color:var(--st-ink);
+  font-family:'Cormorant Garamond','Times New Roman',serif;
+}
+
+/* ------------------------------------------------------------- the banner -- */
+
+.story-head{
+  max-width:42rem;
+  /* Clears the fixed navbar capsule, which is ~3.5rem tall sitting 0.85rem
+     down. Without this the eyebrow starts underneath it. */
+  margin:0 auto;
+  padding:clamp(6rem, 12vw, 9rem) clamp(1.5rem, 5vw, 3rem) clamp(2.4rem, 5vw, 3.6rem);
+  text-align:center;
+}
+
+.story-eyebrow{
+  font-size:clamp(.58rem, .8vw, .68rem);
+  text-transform:uppercase;
+  /* text-indent cancels the trailing space letter-spacing leaves after the
+     last glyph, which is what keeps centred caps actually centred. */
+  letter-spacing:.34em;
+  text-indent:.34em;
+  color:var(--st-soft);
+  margin:0 0 clamp(1.4rem, 3vw, 2.2rem);
+}
+
+.story-title{
+  font-size:clamp(2.3rem, 7vw, 5rem);
+  font-weight:300;
+  line-height:1.08;
+  letter-spacing:.02em;
+  margin:0;
+  color:var(--st-ink);
+}
+.story-title em{
+  font-style:italic;
+  font-weight:300;
+  color:var(--st-gold);
+}
+
+.story-place{
+  font-size:clamp(.58rem, .8vw, .68rem);
+  text-transform:uppercase;
+  letter-spacing:.3em;
+  text-indent:.3em;
+  color:var(--st-soft);
+  margin:clamp(1.1rem, 2.4vw, 1.6rem) 0 0;
+}
+
+/* One champagne hairline, faded at both ends, between the names and the prose. */
+.story-place::after{
+  content:'';
+  display:block;
+  width:clamp(3rem, 8vw, 5rem);
+  height:1px;
+  margin:clamp(1.6rem, 3.4vw, 2.4rem) auto 0;
+  background:linear-gradient(to right,
+             rgba(168,135,58,0) 0%,
+             rgba(168,135,58,.6) 50%,
+             rgba(168,135,58,0) 100%);
+}
+
+.story-intro{
+  font-family:'Manrope',sans-serif;
+  font-size:clamp(.88rem, 1.1vw, 1rem);
+  font-weight:300;
+  line-height:1.95;
+  color:var(--st-soft);
+  max-width:32rem;
+  margin:clamp(1.8rem, 3.6vw, 2.6rem) auto 0;
+}
+
+/* ------------------------------------------------------------ the credits -- */
+
+.story-credits{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:clamp(1.6rem, 4vw, 3.2rem);
+  margin:clamp(2.4rem, 5vw, 3.6rem) 0 0;
+}
+.story-credits div{ text-align:center; }
+.story-credits dt{
+  font-family:'Manrope',sans-serif;
+  font-size:.56rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.24em;
+  color:var(--st-gold);
+  margin:0 0 .5rem;
+}
+.story-credits dd{
+  font-size:clamp(.85rem, 1.05vw, .98rem);
+  letter-spacing:.04em;
+  color:var(--st-ink);
+  margin:0;
+}
+
+/* ------------------------------------------------------------- the frames -- */
+
+/* No gaps. The frames stack flush, vertically and between the two halves of
+   a pair, so the page reads as one continuous column of photographs rather
+   than a list of separate cards with cream showing between them.
+
+   The column is also narrower than it was — 54rem against 64 — which is what
+   keeps a flush stack from turning into a wall. */
+.story-frames{
+  max-width:54rem;
+  margin:0 auto;
+  padding:0 clamp(.75rem, 2.5vw, 1.5rem);
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+
+.story-frame{
+  margin:0;
+  overflow:hidden;
+  background:#e8e0d4;          /* holds the shape before the image lands */
+  /* Each frame fades in as it arrives; story.js adds .is-in. The start state
+     lives here so there is no flash of a settled frame before the script
+     runs.
+
+     Fade only — no rise. A frame translating up opens a gap beneath itself
+     for the length of the animation, and in a flush stack that transient gap
+     is exactly the seam this layout exists to remove. */
+  opacity:0;
+  transition:opacity 1s cubic-bezier(.16,1,.3,1);
+  will-change:opacity;
+}
+.story-frame.is-in{ opacity:1; }
+
+.story-frame img{
+  width:100%;
+  height:auto;
+  display:block;
+}
+
+/* Two frames sharing a row. The reference is mostly single column, and these
+   are what stop a long scroll of identical full-bleed frames reading as a
+   contact sheet.
+
+   The two halves will almost never be the same natural height, and with no
+   gap between them the shorter one would leave a strip of cream under it —
+   so both stretch to the row and crop. */
+.story-pair{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+  align-items:stretch;
+}
+.story-pair .story-frame{ display:flex; }
+.story-pair .story-frame img{
+  height:100%;
+  object-fit:cover;
+}
+/* Staggered, so a pair arrives as two beats rather than one. */
+.story-pair .story-frame:nth-child(2){ transition-delay:.12s; }
+
+@media (max-width:680px){
+  .story-pair{ grid-template-columns:1fr; }
+  .story-pair .story-frame:nth-child(2){ transition-delay:0s; }
+}
+
+/* ---------------------------------------------------------------- the end -- */
+
+.story-end{
+  text-align:center;
+  padding:clamp(4rem, 8vw, 6rem) clamp(1.5rem, 5vw, 3rem) clamp(3.2rem, 7vw, 5rem);
+}
+
+.story-next{
+  display:inline-flex;
+  align-items:baseline;
+  gap:.5em;
+  font-size:clamp(1.7rem, 4.6vw, 3.2rem);
+  font-weight:300;
+  letter-spacing:.02em;
+  color:var(--st-ink);
+  text-decoration:none;
+  transition:color .55s ease;
+}
+.story-next em{ font-style:italic; color:var(--st-gold); }
+.story-next:hover{ color:var(--st-gold); }
+.story-next-arrow{
+  font-size:.55em;
+  transition:transform .6s cubic-bezier(.16,.84,.34,1);
+}
+.story-next:hover .story-next-arrow{ transform:translateX(.35em); }
+
+.story-nav{ margin:clamp(2.2rem, 4.5vw, 3.2rem) 0 0; }
+
+.story-link{
+  position:relative;
+  font-family:'Manrope',sans-serif;
+  font-size:.6rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.24em;
+  color:var(--st-soft);
+  text-decoration:none;
+  padding-bottom:.35em;
+  transition:color .5s ease;
+}
+.story-link::after{
+  content:'';
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:1px;
+  background:var(--st-gold);
+  transform:scaleX(0);
+  transition:transform .55s cubic-bezier(.16,.84,.34,1);
+}
+.story-link:hover{ color:var(--st-gold); }
+.story-link:hover::after{ transform:scaleX(1); }
+
+@media (prefers-reduced-motion: reduce){
+  .story-frame{
+    opacity:1;
+    transform:none;
+    transition:none;
+  }
+  .story-next,
+  .story-next-arrow,
+  .story-link,
+  .story-link::after{ transition:none; }
+}

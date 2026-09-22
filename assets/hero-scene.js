@@ -1170,6 +1170,10 @@
 
     function start() {
       if (!armed || playing) return;
+      // The src lives in data-src until now. preload="none" does not stop
+      // Chrome probing the URL, so having it in the markup meant a 404 on
+      // every single page load while assets/ambience.mp3 is absent.
+      if (!audio.src && audio.dataset.src) audio.src = audio.dataset.src;
       audio.muted = false;
       audio.volume = 0;
       const p = audio.play();
@@ -1431,9 +1435,163 @@
         invalidateOnRefresh: true,
         refreshPriority: -1,
       });
+
+      /* The capsule is ivory glass, which is right for every section on the
+         page except the footer's ink band. Swap the coat while the bar is
+         over it. ScrollTrigger rather than an IntersectionObserver because
+         the observer is already proven unreliable in embedded views, and
+         this file has a working ScrollTrigger to hand. */
+      const pill = nav && nav.querySelector('.nav-pill');
+      const ink = document.querySelector('.foot-dark');
+      if (pill && ink) {
+        ScrollTrigger.create({
+          trigger: ink,
+          // The pill sits ~0.85rem from the top, so it crosses onto the dark
+          // band a little before the band reaches the top of the viewport.
+          start: 'top 4rem',
+          end: 'bottom top',
+          onToggle: (self) => pill.classList.toggle('on-ink', self.isActive),
+          invalidateOnRefresh: true,
+          refreshPriority: -2,
+        });
+      }
+
     }
 
     ScrollTrigger.refresh();
+
+    /* ---- where an anchor is allowed to land ---------------------------
+
+       Two separate faults met at the same place, and both showed up as
+       "Gallery takes me to the top of the page".
+
+       One: #work sits exactly at the hero's pin end, and the white veil is
+       still fading for 1.25 viewport heights past that point. Measured at
+       a 768px viewport — #work top 3226, veil opacity 0.176 there, 0.067 at
+       3300, 0 at 3418. So a jump to #work landed the reader inside the tail
+       of the white transition rather than on the gallery.
+
+       Two: arriving from a story page as index.html#work, the browser
+       resolves the hash during its own load, long before this file has
+       built the pin. At that moment the document is ~2500px shorter than
+       it ends up, so #work resolves near the top and the reader lands on
+       the hero.
+
+       1.1 viewport heights past the pin leaves the veil at about 0.065 —
+       close enough to gone — while cropping only ~77px off the top of the
+       reel. Clearing it completely would cost 192px of the reel, which is
+       the worse trade. */
+    const VEIL_CLEAR = 1.1;
+
+    window.heroSafeScrollY = function (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY;
+      // The hero itself, and anything above the pin, must not be pushed.
+      if (y < pinST.end) return Math.round(y);
+      return Math.round(Math.max(y, pinST.end + window.innerHeight * VEIL_CLEAR));
+    };
+
+    /* Scroll to a target and then check the answer.
+
+       One reading of an element's position is not enough on this page. Web
+       fonts swap in with `display=swap` and images below the fold land late,
+       and both change the height of everything above the target after the
+       scroll has already been computed — measured 276px of drift on the
+       enquiry section, which is the difference between landing on a form and
+       landing on the paragraph above it.
+
+       So re-measure for about a second after arriving and correct. The
+       correction starts late enough not to fight a smooth scroll still in
+       flight, and any real input from the reader cancels it — nothing here is
+       allowed to yank a page somebody has taken hold of. */
+    window.heroScrollTo = function (el, smooth) {
+      window.scrollTo({
+        top: window.heroSafeScrollY(el),
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+
+      let cancelled = false;
+      const stop = function () { cancelled = true; };
+      const events = ['wheel', 'touchstart', 'keydown'];
+      events.forEach(function (ev) {
+        window.addEventListener(ev, stop, { passive: true });
+      });
+      const release = function () {
+        events.forEach(function (ev) { window.removeEventListener(ev, stop); });
+      };
+
+      const correct = function () {
+        if (cancelled) return;
+        const want = window.heroSafeScrollY(el);
+        if (Math.abs(window.scrollY - want) > 4) {
+          window.scrollTo({ top: want, behavior: 'auto' });
+        }
+      };
+
+      /* The window has to outlast the settling, not guess at it. A first
+         attempt at 700–1900ms looked right and still missed by 276px, because
+         the fonts had not finished swapping when it closed. Nearly three
+         seconds of checks, plus an explicit one the moment the fonts report
+         ready, covers it without ever being noticeable — each correction is
+         a no-op unless something actually moved. */
+      setTimeout(function () {
+        let tries = 0;
+        const fix = setInterval(function () {
+          tries += 1;
+          correct();
+          if (cancelled || tries > 10) {
+            clearInterval(fix);
+            release();
+          }
+        }, 250);
+      }, 600);
+
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () { setTimeout(correct, 60); });
+      }
+      window.addEventListener('load', function () { setTimeout(correct, 80); }, { once: true });
+    };
+
+    /* An incoming hash was stashed and stripped before first paint (see the
+       head of index.html) precisely so the browser could not act on it too
+       early. Now that the pin exists, honour it. */
+    const pending = window.__pendingHash;
+    if (pending) {
+      window.__pendingHash = '';
+      const el = document.getElementById(pending);
+      if (el) {
+        window.heroScrollTo(el, false);
+        history.replaceState(null, '', location.pathname + '#' + pending);
+      }
+
+      /* Do not uncover yet.
+
+         The veil is scrubbed with smoothing, so after a jump its timeline
+         has to travel from where it was to where the new scroll position
+         puts it — and the route passes through full white. Uncovering the
+         instant we scroll would show that sweep. Wait until the veil has
+         actually settled.
+
+         Polled on a timer rather than requestAnimationFrame: a view that is
+         not compositing stops delivering frames, and the cover must come
+         down regardless. Capped, because the reader must never be left
+         looking at a blank page. */
+      const veilEl = document.querySelector('.reveal-veil');
+      const drop = function () {
+        document.documentElement.classList.add('jump-done');
+      };
+      if (!veilEl) {
+        drop();
+      } else {
+        const started = Date.now();
+        const poll = setInterval(function () {
+          const settled = parseFloat(getComputedStyle(veilEl).opacity) <= 0.12;
+          if (settled || Date.now() - started > 2200) {
+            clearInterval(poll);
+            drop();
+          }
+        }, 60);
+      }
+    }
   });
   }
 })();
