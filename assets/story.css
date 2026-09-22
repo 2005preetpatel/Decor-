@@ -27,7 +27,7 @@
   /* Clears the fixed navbar capsule, which is ~3.5rem tall sitting 0.85rem
      down. Without this the eyebrow starts underneath it. */
   margin:0 auto;
-  padding:clamp(6rem, 12vw, 9rem) clamp(1.5rem, 5vw, 3rem) clamp(2.4rem, 5vw, 3.6rem);
+  padding:clamp(5.16rem, 9.36vw, 7.74rem) clamp(1.29rem, 3.9vw, 2.58rem) clamp(2.064rem, 3.9vw, 3.096rem);
   text-align:center;
 }
 
@@ -39,11 +39,11 @@
   letter-spacing:.34em;
   text-indent:.34em;
   color:var(--st-soft);
-  margin:0 0 clamp(1.4rem, 3vw, 2.2rem);
+  margin:0 0 clamp(1.204rem, 2.34vw, 1.892rem);
 }
 
 .story-title{
-  font-size:clamp(2.3rem, 7vw, 5rem);
+  font-size:clamp(1.978rem, 5.46vw, 4.3rem);
   font-weight:300;
   line-height:1.08;
   letter-spacing:.02em;
@@ -62,7 +62,7 @@
   letter-spacing:.3em;
   text-indent:.3em;
   color:var(--st-soft);
-  margin:clamp(1.1rem, 2.4vw, 1.6rem) 0 0;
+  margin:clamp(0.946rem, 1.872vw, 1.376rem) 0 0;
 }
 
 /* One champagne hairline, faded at both ends, between the names and the prose. */
@@ -71,7 +71,7 @@
   display:block;
   width:clamp(3rem, 8vw, 5rem);
   height:1px;
-  margin:clamp(1.6rem, 3.4vw, 2.4rem) auto 0;
+  margin:clamp(1.376rem, 2.652vw, 2.064rem) auto 0;
   background:linear-gradient(to right,
              rgba(168,135,58,0) 0%,
              rgba(168,135,58,.6) 50%,
@@ -85,7 +85,7 @@
   line-height:1.95;
   color:var(--st-soft);
   max-width:32rem;
-  margin:clamp(1.8rem, 3.6vw, 2.6rem) auto 0;
+  margin:clamp(1.548rem, 2.808vw, 2.236rem) auto 0;
 }
 
 /* ------------------------------------------------------------ the credits -- */
@@ -94,8 +94,8 @@
   display:flex;
   flex-wrap:wrap;
   justify-content:center;
-  gap:clamp(1.6rem, 4vw, 3.2rem);
-  margin:clamp(2.4rem, 5vw, 3.6rem) 0 0;
+  gap:clamp(1.376rem, 3.12vw, 2.752rem);
+  margin:clamp(2.064rem, 3.9vw, 3.096rem) 0 0;
 }
 .story-credits div{ text-align:center; }
 .story-credits dt{
@@ -105,7 +105,7 @@
   text-transform:uppercase;
   letter-spacing:.24em;
   color:var(--st-gold);
-  margin:0 0 .5rem;
+  margin:0 0 0.43rem;
 }
 .story-credits dd{
   font-size:clamp(.85rem, 1.05vw, .98rem);
@@ -125,7 +125,7 @@
 .story-frames{
   max-width:54rem;
   margin:0 auto;
-  padding:0 clamp(.75rem, 2.5vw, 1.5rem);
+  padding:0 clamp(0.645rem, 1.95vw, 1.29rem);
   display:flex;
   flex-direction:column;
   gap:0;
@@ -184,14 +184,14 @@
 
 .story-end{
   text-align:center;
-  padding:clamp(4rem, 8vw, 6rem) clamp(1.5rem, 5vw, 3rem) clamp(3.2rem, 7vw, 5rem);
+  padding:clamp(3.44rem, 6.24vw, 5.16rem) clamp(1.29rem, 3.9vw, 2.58rem) clamp(2.752rem, 5.46vw, 4.3rem);
 }
 
 .story-next{
   display:inline-flex;
   align-items:baseline;
   gap:.5em;
-  font-size:clamp(1.7rem, 4.6vw, 3.2rem);
+  font-size:clamp(1.462rem, 3.588vw, 2.752rem);
   font-weight:300;
   letter-spacing:.02em;
   color:var(--st-ink);
