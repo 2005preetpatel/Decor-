@@ -259,15 +259,26 @@
   /* A warm core falling to nothing, not a hard white disc. The two inner
      stops are barely off-white and the outer two carry the warmth, so the
      expanding edge stays lit rather than turning grey as it fades. */
+  /* The softness is in the stops, not in a filter.
+
+     This used to carry filter:blur(16px). The comment claimed the blur cost
+     the same at 16x as at 1x because it is applied at layout size — but the
+     browser rasterises a filtered layer at the scale it will actually be
+     drawn, and measured, this element renders at 12024 x 12024 under the
+     camera's perspective. That is roughly 145 million pixels of blurred
+     surface being produced during the last stretch of the door animation,
+     which is exactly the stretch you pass through coming back up.
+
+     Two extra gradient stops give the same falloff for nothing. A radial
+     gradient is drawn by the rasteriser directly; there is no filter pass. */
   background:radial-gradient(circle,
     #ffffff 0%,
-    #fffefb 34%,
-    rgba(255,252,242,.92) 56%,
-    rgba(255,246,224,.55) 74%,
+    #fffefb 30%,
+    rgba(255,253,246,.96) 44%,
+    rgba(255,252,242,.86) 58%,
+    rgba(255,249,232,.62) 70%,
+    rgba(255,246,224,.34) 82%,
     rgba(255,242,214,0) 100%);
-  /* Blurred at its own layout size (~150px) and scaled by transform on top,
-     so the bloom costs the same at 16x as at 1x. */
-  filter:blur(16px);
   opacity:0;
   transform:scale(.28);
   /* Grows from its own middle, which place() has already parked on the
@@ -916,10 +927,20 @@
 
 /* ------------------------------------------------------------- statement -- */
 
+/* Measured off the reference: its body column runs about 33% of the viewport
+   and its quote about 38%, where this block was at 45% and 59%. The type keeps
+   its size; the column comes in, so the text sits in the amount of empty page
+   the reference gives it. */
 .ed-statement{
-  max-width:52rem;
+  max-width:46rem;
   margin:0 auto;
-  padding:clamp(4.3rem, 9.36vw, 7.74rem) clamp(1.29rem, 3.9vw, 2.58rem) clamp(2.58rem, 5.46vw, 4.3rem);
+  /* Close to the frame above it.
+
+     The reference sets its statement about two lines below the picture. This
+     was sitting a whole screen below: 96px of top padding against a 29px
+     quote, so 3.3x the size of the type it was introducing. At that ratio the
+     gap stops reading as breathing room and starts reading as a hole. */
+  padding:clamp(2.2rem, 4.6vw, 3.9rem) clamp(1.29rem, 3.9vw, 2.58rem) clamp(1.3rem, 2.6vw, 2.2rem);
   text-align:center;
 }
 
@@ -937,36 +958,59 @@
 }
 
 .ed-eyebrow{
-  font-size:clamp(.6rem, .85vw, .7rem);
-  margin:0 0 clamp(1.204rem, 2.34vw, 1.892rem);
+  font-size:clamp(.62rem, .86vw, .72rem);
+  margin:0 0 clamp(.85rem, 1.6vw, 1.3rem);
 }
 
 .ed-quote{
-  font-size:clamp(1.29rem, 2.808vw, 2.494rem);
-  font-weight:400;
-  line-height:1.28;
-  letter-spacing:.07em;
-  text-indent:.07em;
+  /* Down a little. In the reference the quote leads the block but does not
+     dominate it — quote to body copy runs about 2:1, and this was at 2.34:1
+     with the body doing the losing. */
+  font-size:clamp(1.2rem, 2.65vw, 2.25rem);
+  /* The reference sets this line thin and very open — measured at roughly
+     .15em of tracking against a light weight. .11em on Cormorant, which is a
+     wider face than theirs, lands in the same place. */
+  font-weight:300;
+  line-height:1.3;
+  letter-spacing:.11em;
+  text-indent:.11em;
   text-transform:uppercase;
-  margin:0 0 clamp(1.376rem, 2.652vw, 2.236rem);
+  margin:0 0 clamp(1rem, 2vw, 1.7rem);
   color:var(--ed-ink);
 }
 
 .ed-body{
-  max-width:34rem;
-  margin:0 auto clamp(1.548rem, 3.12vw, 2.408rem);
+  max-width:26.5rem;
+  margin:0 auto clamp(1.1rem, 2.1vw, 1.75rem);
 }
 .ed-body p{
-  font-size:clamp(.95rem, 1.2vw, 1.08rem);
+  /* Up, and tighter. The body was set at 12.3px against a 29px quote and
+     leading of 1.95, which is why the paragraphs read as a faint caption
+     under a headline rather than as the thing you are meant to read. */
+  font-size:clamp(1.05rem, 1.42vw, 1.28rem);
   font-weight:300;
-  line-height:1.95;
+  /* The reference runs its paragraphs at 1.70 with a hair of tracking. */
+  line-height:1.7;
+  letter-spacing:.012em;
   color:var(--ed-ink-soft);
-  margin:0 0 0.946rem;
+  /* Measured off the reference as the EXTRA gap beyond one line, not the
+     whole baseline-to-baseline distance: it runs 19px of extra space against
+     34px lines, so 0.56 of a line. Against these 23px lines that is 13px. */
+  margin:0 0 1rem;
 }
 .ed-body p:last-child{ margin-bottom:0; }
 
 .ed-kicker{
-  font-size:clamp(.58rem, .8vw, .66rem);
+  /* The closing line is a statement, not a footnote. It was 8.4px.
+
+     The reference sets this darker and heavier than the body it follows, and
+     at about .15em — tighter than the .34em the eyebrow above uses. It is a
+     conclusion, not a label, so it does not want label tracking. */
+  font-size:clamp(.78rem, 1.05vw, .92rem);
+  letter-spacing:.15em;
+  text-indent:.15em;
+  font-weight:500;
+  color:var(--ed-ink);
   margin:0;
 }
 
@@ -990,7 +1034,7 @@
 
   position:relative;
   background:var(--bento-cream);
-  padding:clamp(2.58rem, 5.46vw, 4.73rem) clamp(0.86rem, 3.12vw, 3.01rem) clamp(2.15rem, 4.68vw, 3.87rem);
+  padding:clamp(1.3rem, 2.7vw, 2.3rem) clamp(0.86rem, 3.12vw, 3.01rem) clamp(1.8rem, 3.8vw, 3.2rem);
 
   /* The halo below is wider than the viewport on purpose, and this section
      does not otherwise clip — so it was extending the document and putting a
@@ -1014,64 +1058,6 @@
              rgba(201,169,97,.05) 42%,
              rgba(201,169,97,0) 72%);
   pointer-events:none;
-}
-
-/* ---- the header ---- */
-
-.bento-head{
-  position:relative;
-  max-width:44rem;
-  margin:0 auto clamp(2.064rem, 3.9vw, 3.268rem);
-  text-align:center;
-}
-
-.bento-eyebrow{
-  font-family:'Cormorant Garamond','Times New Roman',serif;
-  font-size:clamp(.58rem, .8vw, .68rem);
-  text-transform:uppercase;
-  /* text-indent cancels the trailing space letter-spacing leaves after the
-     last glyph, which is what keeps centred caps actually centred. */
-  letter-spacing:.34em;
-  text-indent:.34em;
-  color:var(--bento-soft);
-  margin:0 0 clamp(0.86rem, 1.716vw, 1.29rem);
-}
-
-.bento-title{
-  font-family:'Cormorant Garamond','Times New Roman',serif;
-  font-size:clamp(1.376rem, 3.12vw, 2.58rem);
-  font-weight:300;
-  line-height:1.15;
-  letter-spacing:.02em;
-  color:var(--bento-ink);
-  margin:0;
-}
-.bento-title em{
-  font-style:italic;
-  color:#a8873a;
-}
-
-/* One champagne hairline between the heading and the note. */
-.bento-title::after{
-  content:'';
-  display:block;
-  width:clamp(2.6rem, 7vw, 4.2rem);
-  height:1px;
-  margin:clamp(1.032rem, 2.028vw, 1.548rem) auto 0;
-  background:linear-gradient(to right,
-             rgba(168,135,58,0) 0%,
-             rgba(168,135,58,.6) 50%,
-             rgba(168,135,58,0) 100%);
-}
-
-.bento-note{
-  font-family:'Manrope',sans-serif;
-  font-size:clamp(.6rem, .8vw, .7rem);
-  font-weight:400;
-  text-transform:uppercase;
-  letter-spacing:.2em;
-  color:var(--bento-soft);
-  margin:clamp(0.946rem, 1.872vw, 1.376rem) 0 0;
 }
 
 .bento-grid{
@@ -1112,7 +1098,16 @@
   height:100%;
   transform:translateZ(0) scale(1.15);
   opacity:.9;
-  will-change:transform, opacity;
+  /* No will-change here.
+
+     There are nine of these and nine images inside them, so this was asking
+     the compositor to hold eighteen permanently promoted layers for the whole
+     session — most of them far off screen. That is memory and paint pressure
+     bought for nothing, and on a modest GPU it shows up as the scroll
+     stuttering, in whichever direction happens to be under way.
+
+     translateZ(0) already gives these their own layer while they animate, and
+     GSAP promotes what it is actually moving. */
 }
 
 /* Carries the hover zoom, so the two never fight over one transform. */
@@ -1122,7 +1117,6 @@
   object-fit:cover;
   display:block;
   transform:translateZ(0);
-  will-change:transform;
   transition:transform 1.1s cubic-bezier(.16,.84,.34,1);
 }
 .bento-card:hover img{ transform:translateZ(0) scale(1.03); }
@@ -1256,11 +1250,12 @@
 /* --------------------------------------------------------------- stories -- */
 
 .ed-stories{
-  padding:clamp(3.44rem, 7.8vw, 6.02rem) clamp(1.29rem, 3.9vw, 3.01rem) clamp(3.44rem, 7.02vw, 5.16rem);
+  padding:clamp(2.3rem, 4.9vw, 4.2rem) clamp(1.29rem, 3.9vw, 3.01rem) clamp(2.6rem, 5.4vw, 4.4rem);
   text-align:center;
 }
 
 .ed-heading{
+  text-wrap:balance;
   font-size:clamp(1.29rem, 2.496vw, 2.15rem);
   font-weight:400;
   text-transform:uppercase;
@@ -1271,15 +1266,16 @@
 }
 
 .ed-sub{
-  font-size:clamp(.6rem, .82vw, .7rem);
+  text-wrap:balance;
+  font-size:clamp(.72rem, .98vw, .84rem);
   font-weight:400;
   text-transform:uppercase;
   letter-spacing:.2em;
   text-indent:.2em;
   color:var(--ed-ink-soft);
   max-width:40rem;
-  margin:0 auto clamp(2.236rem, 3.9vw, 3.44rem);
-  line-height:1.9;
+  margin:0 auto clamp(1.8rem, 3.2vw, 2.8rem);
+  line-height:1.85;
 }
 
 .ed-three{
@@ -1399,7 +1395,7 @@
   position:relative;
   max-width:74rem;
   margin:0 auto;
-  padding:clamp(2.58rem, 6.24vw, 5.16rem) clamp(1.075rem, 3.12vw, 2.58rem) 0;
+  padding:clamp(1.7rem, 3.6vw, 3.1rem) clamp(1.075rem, 3.12vw, 2.58rem) 0;
 }
 
 .ed-reel-stage{
@@ -1419,14 +1415,16 @@
   height:100%;
   object-fit:cover;
   opacity:0;
-  /* Out is quicker than in: the eye forgives a picture leaving faster than
-     it forgives one arriving. */
-  transition:opacity .26s cubic-bezier(.4,0,1,1);
-  will-change:opacity;
+  /* Leaving is instant in practice: by the time a slide loses .is-on it is
+     already hidden behind the one that replaced it, so this duration is never
+     actually watched. */
+  transition:opacity .2s linear;
 }
 .ed-slide.is-on{
   opacity:1;
-  transition:opacity .34s cubic-bezier(0,0,.2,1);
+  /* The only transition anyone sees: the incoming picture coming up over the
+     outgoing one. Must match IN in the reel script. */
+  transition:opacity .42s cubic-bezier(.33,0,.2,1);
 }
 
 /* Nothing sits on the picture.
@@ -1563,6 +1561,7 @@
 }
 
 .site-footer .foot-line{
+  text-wrap:balance;
   font-size:clamp(1.634rem, 4.212vw, 3.526rem);
   font-weight:300;
   line-height:1.12;
@@ -1682,6 +1681,7 @@
 .site-footer .foot-mark em{ font-style:italic; font-weight:300; }
 
 .site-footer .foot-blurb{
+  text-wrap:pretty;
   font-family:'Manrope',sans-serif;
   font-size:.82rem;
   font-weight:300;
@@ -2220,6 +2220,7 @@ html.is-jumping.jump-done::before{ opacity:0; }
 }
 
 .enquire-title{
+  text-wrap:balance;
   font-size:clamp(1.634rem, 3.588vw, 2.924rem);
   font-weight:300;
   line-height:1.1;
@@ -2229,6 +2230,7 @@ html.is-jumping.jump-done::before{ opacity:0; }
 .enquire-title em{ font-style:italic; color:var(--eq-gold); }
 
 .enquire-lede{
+  text-wrap:pretty;
   font-family:'Manrope',sans-serif;
   font-size:clamp(.85rem, 1.05vw, .95rem);
   font-weight:300;

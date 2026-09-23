@@ -1281,10 +1281,27 @@
         // Resolved in pixels rather than '+=420%', which measures against the
         // pinned element and compounds if that element is ever mis-sized.
         end: () => '+=' + Math.max(window.innerHeight, hero.clientHeight, 600) * 3.2,
-        scrub: 1.1,
+        /* The room and the white have to carry the SAME smoothing.
+
+           This was 1.1 while the veil ran at 0.35, and both cover the same
+           stretch of scroll — so the white tracked the wheel nearly three
+           times more closely than the room behind it. Going either way the
+           two layers pulled apart, which is what reads as the transition
+           being rough rather than as one move.
+
+           0.6 for both: still smoothed, so the doors do not snap to the
+           wheel, but close enough that reversing direction is answered
+           almost at once instead of after a beat of drift. */
+        scrub: 0.6,
         pin: true,
         pinSpacing: true,
-        anticipatePin: 1,
+        /* anticipatePin was 1. It pins slightly EARLY based on scroll
+           velocity, which helps a fast scroll downward into the pin and is a
+           well known cause of a jolt coming back UP into it — the pin engages
+           before the element has actually reached the top, so the page
+           appears to catch and snap. Nothing on this page needs it: the hero
+           is the first section, so it is already at the top when the pin
+           takes hold. */
         invalidateOnRefresh: true,
       },
     });
@@ -1340,8 +1357,24 @@
        Symmetrical by construction — same duration, same ease, same magnitude,
        opposite sign, both starting at DOOR_IN. */
     const swing = DOOR_OUT - DOOR_IN;
-    tl.to('.door-left', { rotateY: -92, duration: swing, ease: 'sine.inOut' }, DOOR_IN);
-    tl.to('.door-right', { rotateY: 92, duration: swing, ease: 'sine.inOut' }, DOOR_IN);
+    /* 89, not 92, and the three degrees matter.
+
+       The two faces of a leaf are not the same object. .door-face carries the
+       panel mouldings, the handle and the three hinges; .door-back is only the
+       plate image, mirrored, and a shade darker at brightness(.97). They are
+       coplanar, so backface-visibility swaps between them the instant the leaf
+       passes 90 degrees.
+
+       At 92 the leaf crossed that line. For the last two degrees of the swing
+       the handle, hinges and mouldings were simply gone, and the leaf dimmed —
+       in one frame. Opening, it happens behind the white and is missed;
+       closing, it happens in full view, which is where it was reported.
+
+       Stopping at 89 means the back face is never reached. The difference in
+       how far open the doors look is under a pixel at this depth; the
+       difference in whether the hardware vanishes is the whole bug. */
+    tl.to('.door-left', { rotateY: -89, duration: swing, ease: 'sine.inOut' }, DOOR_IN);
+    tl.to('.door-right', { rotateY: 89, duration: swing, ease: 'sine.inOut' }, DOOR_IN);
 
     // The outside, arriving with the gap rather than after it.
     tl.fromTo('.garden-glow', { opacity: 0 },
@@ -1396,9 +1429,38 @@
        is the seam where the sections below would otherwise flash into view,
        and it is covered.
 
-         start        fade up, over the last half-viewport of the pin
-         .29 - .49    hold. Full white, still scrolling.
-         .49 - 1      the homepage emerges from it. */
+       Two facts set every number below.
+
+       One: a pinned element still owns its own height after it releases. The
+       spacer is the pin distance PLUS the hero, so there is exactly one
+       viewport of hero left to scroll past before the editorial reaches the
+       top — measured, #work sits at pinEnd + 1.0vh, never at pinEnd.
+
+       Two: the old timing faded the white off across 55% of a 1.53vh range.
+       That put a half-transparent sheet over both that hero tail and the
+       sections beyond it, which produced all three of the reported symptoms
+       at once — washed-out sections, the hero's columns ghosting through, and
+       a white that felt held rather than passed through.
+
+       Holding the white across the whole hero tail was the wrong answer, and
+       it is worth writing down why, because it looked right at one viewport
+       and wrong at another.
+
+       The reel does not arrive all at once. It climbs into frame from the
+       bottom over most of a screen, so at a 900px viewport it is already 84px
+       into view while the white is still at 0.27 — and that is what a reader
+       sees: a washed out picture. Timing the fade to end when the section's
+       TOP reaches the top of the window is too late by almost a full screen.
+
+       The tail does not need covering anyway. The hero is switched off at
+       pinEnd + 0.06vh by the trigger below, so everything after that is bare
+       page. So the white now does its job and leaves: solid across the seam,
+       gone 270px later, long before the reel is anywhere near the viewport.
+
+         0 - .48      fade up, over the last 0.28vh of the pin
+         .48          full white, exactly as the pin releases
+         .48 - .58    hold, and the hero is switched off behind it
+         .58 - 1      lifts, and is gone by pinEnd + 0.30vh */
 
     const pinST = tl.scrollTrigger;
     const veil = document.querySelector('.reveal-veil');
@@ -1407,14 +1469,53 @@
         defaults: { ease: 'power1.inOut' },
         scrollTrigger: {
           start: () => pinST.end - window.innerHeight * 0.28,
-          end: () => pinST.end + window.innerHeight * 1.25,
-          scrub: 1.1,
+          end: () => pinST.end + window.innerHeight * 0.30,
+          // Matched to the hero's scrub above; see the note there.
+          scrub: 0.6,
           invalidateOnRefresh: true,
           refreshPriority: -1,
         },
       })
-        .to(veil, { opacity: 1, duration: 0.18 }, 0)
-        .to(veil, { opacity: 0, duration: 0.55 }, 0.45);
+        .to(veil, { opacity: 1, duration: 0.48 }, 0)
+        .to(veil, { opacity: 0, duration: 0.42 }, 0.58);
+
+      /* Taking the room out is a switch, not a value to scrub.
+
+         It used to be an autoAlpha tween on the timeline above. On a scrubbed
+         timeline that is an interpolated number, so while the scrub catches
+         up the hero can sit at a PARTIAL opacity — and if the veil happens to
+         be part way too, the room shows through both. Coming back up that is
+         exactly the window you pass through, which is where a ghost appears.
+
+         A plain trigger has no in-between: hidden or visible, decided at one
+         scroll position, identical in both directions. */
+      /* opacity, NOT visibility — and this is the whole of the reverse-scroll
+         hang.
+
+         The room is 3049 elements, about 110 of which carry an SVG filter
+         (#fSoft, #fHaze, #fBloom). SVG filters are the most expensive thing a
+         browser rasterises. `visibility:hidden` lets it throw all of that away
+         while you are down the page, which is fine — until you scroll back up,
+         when every one of those 3049 elements and 110 filters has to be
+         rasterised again inside a single frame, right at the moment the doors
+         are meant to be closing. That is the stall.
+
+         opacity:0 keeps the layer alive, so coming back is a composite rather
+         than a rebuild. pointer-events go with it so nothing invisible can
+         still be clicked. */
+      ScrollTrigger.create({
+        start: () => pinST.end + window.innerHeight * 0.06,
+        onEnter: () => {
+          hero.style.opacity = '0';
+          hero.style.pointerEvents = 'none';
+        },
+        onLeaveBack: () => {
+          hero.style.opacity = '';
+          hero.style.pointerEvents = '';
+        },
+        invalidateOnRefresh: true,
+        refreshPriority: -1,
+      });
 
       /* The navbar's entrance.
 
@@ -1477,11 +1578,11 @@
        it ends up, so #work resolves near the top and the reader lands on
        the hero.
 
-       1.1 viewport heights past the pin leaves the veil at about 0.065 —
-       close enough to gone — while cropping only ~77px off the top of the
-       reel. Clearing it completely would cost 192px of the reel, which is
-       the worse trade. */
-    const VEIL_CLEAR = 1.1;
+       This tracks the veil, which is now clear by pinEnd + 0.30vh. Every
+       anchor target on this page sits well past that, so in practice the
+       clamp never moves anything — it is here so that it cannot land inside
+       the white if a section is ever added higher up. */
+    const VEIL_CLEAR = 0.30;
 
     window.heroSafeScrollY = function (el) {
       const y = el.getBoundingClientRect().top + window.scrollY;

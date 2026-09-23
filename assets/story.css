@@ -43,6 +43,7 @@
 }
 
 .story-title{
+  text-wrap:balance;
   font-size:clamp(1.978rem, 5.46vw, 4.3rem);
   font-weight:300;
   line-height:1.08;
@@ -79,6 +80,7 @@
 }
 
 .story-intro{
+  text-wrap:pretty;
   font-family:'Manrope',sans-serif;
   font-size:clamp(.88rem, 1.1vw, 1rem);
   font-weight:300;
@@ -144,7 +146,6 @@
      is exactly the seam this layout exists to remove. */
   opacity:0;
   transition:opacity 1s cubic-bezier(.16,1,.3,1);
-  will-change:opacity;
 }
 .story-frame.is-in{ opacity:1; }
 
