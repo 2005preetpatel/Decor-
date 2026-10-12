@@ -4,3 +4,11 @@ Thumbs.db
 
 # Working files from the plate pipeline — regenerate with tools/make-plate.py
 assets/hero-*-check.png
+
+# Secrets and local working files. NEVER commit these.
+.env
+.env.*
+!.env.example
+.vercel
+# Files waiting to be bulk-uploaded (tools/bulk-upload.mjs)
+bulk/

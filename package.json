@@ -2,8 +2,14 @@
   "name": "decor-website",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node server.js",
-    "build:css": "npx -y tailwindcss@3.4.19 -c tools/tailwind.config.js -i tools/tailwind.input.css -o assets/tailwind.css --minify"
+    "build:css": "npx -y tailwindcss@3.4.19 -c tools/tailwind.config.js -i tools/tailwind.input.css -o assets/tailwind.css --minify",
+    "bulk": "node tools/bulk-upload.mjs",
+    "test": "node --test \"tests/*.test.js\"",
+    "test:e2e": "node tests/e2e-public.mjs && node tests/e2e-admin.mjs && node tests/e2e-bulk.mjs"
   }
 }

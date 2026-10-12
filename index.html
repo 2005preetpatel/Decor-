@@ -77,6 +77,20 @@
 <link rel="stylesheet" href="assets/hero-scene.css">
 <link rel="stylesheet" href="assets/tailwind.css">
 <link rel="icon" href="data:,">
+<!-- Public settings (Supabase address, Cloudinary name). While they are empty
+     the page is exactly the sample site. When they are set, the gallery
+     sections are held back until the real pictures arrive, so the samples are
+     never seen being replaced; the timer is the safety net if anything fails. -->
+<script src="assets/config.js"></script>
+<script>
+  (function () {
+    var c = window.OPULA_CONFIG;
+    if (!c || !c.supabaseUrl) return;
+    var h = document.documentElement;
+    h.classList.add('cms-wait');
+    setTimeout(function () { h.classList.remove('cms-wait'); }, 4000);
+  })();
+</script>
 <style>
   :root{
     --navy:#0a1230; --navy-2:#0e1838; --navy-3:#050919;
@@ -623,6 +637,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="assets/media.js"></script>
+<script src="assets/cms.js"></script>
 <script>
     // Nav/anchor links still jump smoothly — scoped to the click instead
     // of the removed global `scroll-behavior:smooth`, so it never fights
@@ -663,11 +679,23 @@
 
        Full settle measured at ~20 frames @30fps = 0.66s, which is the sum of
        the two phases below. */
-    (function reel() {
+    function reelBuild() {
         const stage = document.getElementById('edReel');
         if (!stage) return;
         const slides = [...stage.querySelectorAll('.ed-slide')];
-        if (slides.length < 2) return;
+        // Arrows only make sense with something to go to.
+        document.querySelectorAll('.ed-reel .ed-arrow').forEach(function (a) { a.hidden = slides.length < 2; });
+        if (slides.length < 2) {
+            // A lone slide never changes, but if it is a video it should still play.
+            const only = slides[0];
+            if (only && only.tagName === 'VIDEO' && only.dataset.src
+                && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                if (!only.getAttribute('src')) only.src = only.dataset.src;
+                const p = only.play();
+                if (p && p.catch) p.catch(function () {});
+            }
+            return;
+        }
 
         const prev = document.querySelector('.ed-arrow-prev');
         const next = document.querySelector('.ed-arrow-next');
@@ -683,6 +711,23 @@
         const IN = 420;    // ms for the next picture to cover the one before it
         const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let at = 0, busy = false;
+
+        /* Slides can be videos (from the database). A video is told where its
+           file is only when it is about to be shown, so a gallery of videos
+           does not download all of them up front, and it plays only while it
+           is the one on screen. */
+        function prime(el) {
+            if (el.tagName === 'VIDEO' && !el.getAttribute('src') && el.dataset.src) {
+                el.src = el.dataset.src;
+            }
+        }
+        function playSlide(el) {
+            if (el.tagName !== 'VIDEO' || still) return;
+            prime(el);
+            const p = el.play();
+            if (p && p.catch) p.catch(function () {});
+        }
+        function pauseSlide(el) { if (el.tagName === 'VIDEO') el.pause(); }
 
         /* The change is a cover, not a dip.
 
@@ -710,11 +755,14 @@
             to.style.zIndex = '2';
             from.style.zIndex = '1';
             to.classList.add('is-on');
+            playSlide(to);
+            prime(slides[(at + 1) % slides.length]);
 
             const wait = still ? 0 : IN + 60;
             setTimeout(function () {
                 // Hidden behind `to` by now, so this cannot be seen happening.
                 from.classList.remove('is-on');
+                pauseSlide(from);
                 to.style.zIndex = '';
                 from.style.zIndex = '';
                 busy = false;
@@ -771,15 +819,41 @@
         function bump() { if (timer) { stop(); start(); } }
 
         start();
+        playSlide(slides[0]);
+        prime(slides[1]);
 
-        if (prev) prev.addEventListener('click', function () { go(-1); bump(); });
-        if (next) next.addEventListener('click', function () { go(1); bump(); });
-
+        function onPrev() { go(-1); bump(); }
+        function onNext() { go(1); bump(); }
         // Arrow keys once the reel has been focused or hovered.
-        reelEl.addEventListener('keydown', function (e) {
+        function onKey(e) {
             if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); bump(); }
             if (e.key === 'ArrowRight') { e.preventDefault(); go(1); bump(); }
-        });
+        }
+
+        if (prev) prev.addEventListener('click', onPrev);
+        if (next) next.addEventListener('click', onNext);
+        reelEl.addEventListener('keydown', onKey);
+
+        // Undo everything above, for when the database replaces the slides.
+        return function destroy() {
+            stop();
+            slides.forEach(pauseSlide);
+            if (prev) prev.removeEventListener('click', onPrev);
+            if (next) next.removeEventListener('click', onNext);
+            reelEl.removeEventListener('keydown', onKey);
+        };
+    }
+
+    /* Runs once for the slides in the HTML, and again whenever assets/cms.js
+       swaps in the ones from the database. */
+    (function () {
+        let teardown = null;
+        function init() {
+            if (teardown) { teardown(); teardown = null; }
+            teardown = reelBuild() || null;
+        }
+        init();
+        window.addEventListener('opula:gallery', init);
     })();
 </script>
 
@@ -797,13 +871,58 @@
        edge, driven by the row's own movement (`containerAnimation`) rather
        than by the page's vertical position, which no longer moves while the
        section is pinned. */
-    (function bento() {
+    function bentoBuild() {
         const section = document.querySelector('.ed-bento');
         const track = section && section.querySelector('.bento-grid');
         const cards = track ? [...track.querySelectorAll('.bento-card')] : [];
         if (!cards.length) return;
 
+        section.classList.remove('is-static', 'is-fit');
+
         const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        /* Cards can hold videos (from the database). A video gets its file
+           address only when it first comes near the screen, and plays only
+           while it is visible, so a row of videos does not download or decode
+           all of them at once. */
+        const videos = [...track.querySelectorAll('video')];
+        let watcher = null;
+        if (videos.length) {
+            if (still || !('IntersectionObserver' in window)) {
+                videos.forEach(function (v) { if (!v.getAttribute('src') && v.dataset.src) v.src = v.dataset.src; });
+            } else {
+                watcher = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (e) {
+                        const v = e.target;
+                        if (e.isIntersecting) {
+                            if (!v.getAttribute('src') && v.dataset.src) v.src = v.dataset.src;
+                            const p = v.play();
+                            if (p && p.catch) p.catch(function () {});
+                        } else {
+                            v.pause();
+                        }
+                    });
+                }, { rootMargin: '0px 120px 0px 120px', threshold: 0.2 });
+                videos.forEach(function (v) { watcher.observe(v); });
+            }
+        }
+
+        function settle() {
+            cards.forEach(function (card) {
+                const media = card.querySelector('.bento-media');
+                const cap = card.querySelector('.bento-cap');
+                if (media) {
+                    media.style.transform = 'translateZ(0)';
+                    media.style.opacity = '1';
+                }
+                if (cap) cap.style.opacity = '1';
+            });
+        }
+        function cleanup() {
+            if (watcher) watcher.disconnect();
+            videos.forEach(function (v) { v.pause(); });
+        }
+
         if (still || !window.gsap || !window.ScrollTrigger) {
             /* Settle every card by hand and stop.
 
@@ -814,16 +933,8 @@
                CDN was slow, blocked or offline. The row becomes a plain
                swipeable strip instead of a pinned one. */
             section.classList.add('is-static');
-            cards.forEach(function (card) {
-                const media = card.querySelector('.bento-media');
-                const cap = card.querySelector('.bento-cap');
-                if (media) {
-                    media.style.transform = 'translateZ(0)';
-                    media.style.opacity = '1';
-                }
-                if (cap) cap.style.opacity = '1';
-            });
-            return;
+            settle();
+            return function () { section.classList.remove('is-static'); cleanup(); };
         }
 
         gsap.registerPlugin(ScrollTrigger);
@@ -838,51 +949,79 @@
             return Math.max(0, Math.round(track.scrollWidth - room));
         }
 
-        const slide = gsap.to(track, {
-            x: function () { return -distance(); },
-            ease: 'none',
-            scrollTrigger: {
-                trigger: section,
-                start: 'top top',
-                end: function () { return '+=' + distance(); },
-                pin: true,
-                pinSpacing: true,
-                scrub: 0.8,
-                invalidateOnRefresh: true,
-                /* Same reasoning as before: the hero pin is measured last and
-                   its spacer only then grows the document, so everything
-                   below it refreshes after it. */
-                refreshPriority: -2
-            }
-        });
+        /* A handful of categories fit on one screen: nothing to slide, so no
+           pin — a pin with no distance would just hold the page still. */
+        if (distance() < 40) {
+            section.classList.add('is-fit');
+            settle();
+            return function () { section.classList.remove('is-fit'); cleanup(); };
+        }
 
-        cards.forEach(function (card) {
-            const media = card.querySelector('.bento-media');
-            const cap = card.querySelector('.bento-cap');
-
-            const tl = gsap.timeline({
+        // Everything GSAP makes below lives in this context, so one revert()
+        // removes the pin, the tweens and every inline style they wrote.
+        const ctx = gsap.context(function () {
+            const slide = gsap.to(track, {
+                x: function () { return -distance(); },
+                ease: 'none',
                 scrollTrigger: {
-                    trigger: card,
-                    containerAnimation: slide,
-                    start: 'left 94%',     // begins as the card's edge enters
-                    end: 'left 58%',       // settled once it is well inside
-                    scrub: true,
-                    invalidateOnRefresh: true
+                    trigger: section,
+                    start: 'top top',
+                    end: function () { return '+=' + distance(); },
+                    pin: true,
+                    pinSpacing: true,
+                    scrub: 0.8,
+                    invalidateOnRefresh: true,
+                    /* The hero pin is measured last and its spacer only then
+                       grows the document, so everything below it refreshes
+                       after it. */
+                    refreshPriority: -2
                 }
             });
 
-            tl.fromTo(media,
-                { scale: 1.15, opacity: 0.9 },
-                { scale: 1, opacity: 1, ease: 'none', duration: 1 }, 0);
+            cards.forEach(function (card) {
+                const media = card.querySelector('.bento-media');
+                const cap = card.querySelector('.bento-cap');
 
-            // The title arrives early and then stays — it should not still be
-            // fading when the picture has already settled.
-            if (cap) {
-                tl.fromTo(cap,
-                    { opacity: 0, y: 14 },
-                    { opacity: 1, y: 0, ease: 'none', duration: 0.42 }, 0);
-            }
-        });
+                const tl = gsap.timeline({
+                    scrollTrigger: {
+                        trigger: card,
+                        containerAnimation: slide,
+                        start: 'left 94%',     // begins as the card's edge enters
+                        end: 'left 58%',       // settled once it is well inside
+                        scrub: true,
+                        invalidateOnRefresh: true
+                    }
+                });
+
+                tl.fromTo(media,
+                    { scale: 1.15, opacity: 0.9 },
+                    { scale: 1, opacity: 1, ease: 'none', duration: 1 }, 0);
+
+                // The title arrives early and then stays — it should not
+                // still be fading when the picture has already settled.
+                if (cap) {
+                    tl.fromTo(cap,
+                        { opacity: 0, y: 14 },
+                        { opacity: 1, y: 0, ease: 'none', duration: 0.42 }, 0);
+                }
+            });
+        }, section);
+
+        return function () { ctx.revert(); cleanup(); };
+    }
+
+    /* Runs once for the cards in the HTML, and again whenever assets/cms.js
+       swaps in the ones from the database (then the page is re-measured). */
+    (function () {
+        let teardown = null, first = true;
+        function init() {
+            if (teardown) { teardown(); teardown = null; }
+            teardown = bentoBuild() || null;
+            if (!first && window.ScrollTrigger) ScrollTrigger.refresh();
+            first = false;
+        }
+        init();
+        window.addEventListener('opula:gallery', init);
     })();
 </script>
 

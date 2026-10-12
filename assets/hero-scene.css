@@ -2422,3 +2422,38 @@ html.is-jumping.jump-done::before{ opacity:0; }
   .field select,
   .field textarea{ transition:none; }
 }
+
+
+/* ------------------------------------------------- database-driven gallery --
+   Added with the Supabase connection (assets/cms.js). Everything above is
+   unchanged; these only cover what is new.
+   ------------------------------------------------------------------------- */
+
+/* While the real pictures are on their way, the sample ones are held back so
+   nobody sees them being swapped. cms.js lifts this the moment it has an
+   answer (or after a few seconds, whatever happens). */
+html.cms-wait #edReel,
+html.cms-wait .ed-bento .bento-grid,
+html.cms-wait .ed-stories .ed-three{ visibility:hidden; }
+
+/* Sections that have nothing to show are removed, not left as empty space. */
+.editorial [hidden]{ display:none !important; }
+
+/* Videos in a card or the reel behave exactly like the photographs there. */
+.bento-card video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  transform:translateZ(0);
+  transition:transform 1.1s cubic-bezier(.16,.84,.34,1);
+}
+.bento-card:hover video{ transform:translateZ(0) scale(1.03); }
+@media (prefers-reduced-motion: reduce){
+  .bento-card video,
+  .bento-card:hover video{ transition:none; transform:translateZ(0); }
+}
+
+/* Few categories: the whole row already fits on screen, so there is nothing
+   to slide. It stays put, centred, and the section does not pin. */
+.ed-bento.is-fit .bento-grid{ margin:0 auto; }

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Opula Decor</title>
+<!-- Not for search engines or anyone who stumbles on the address. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+
+<header class="bar">
+    <div class="bar-brand"><strong>Opula Decor</strong><span>Admin</span></div>
+    <div class="bar-right">
+        <span id="who" class="who"></span>
+        <a id="viewsite" class="btn btn-quiet" href="index.html" target="_blank" rel="noopener" hidden>View website</a>
+        <button id="signout" class="btn btn-quiet" type="button" hidden>Sign out</button>
+    </div>
+</header>
+
+<main id="app" class="app">
+    <p class="muted">Loading&hellip;</p>
+</main>
+
+<div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+
+<noscript><p class="app">This page needs JavaScript.</p></noscript>
+
+<script src="assets/config.js"></script>
+<!-- Pinned version, with an integrity hash: if the file on the CDN ever
+     changes, the browser refuses to run it. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"
+        integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o"
+        crossorigin="anonymous"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>

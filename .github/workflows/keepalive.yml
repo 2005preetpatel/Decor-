@@ -1,0 +1,36 @@
+# A second, independent keep-alive for the free Supabase plan: every two days
+# GitHub reads one tiny public row from the database, so the project never
+# looks unused. It uses only the public values already in assets/config.js,
+# so there are no secrets to set up.
+#
+# Notes: GitHub switches scheduled workflows off after about 60 days with no
+# activity in the repository. If that ever happens, open the "Actions" tab and
+# re-enable it (or just push any small change). You can also run it by hand there.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: "41 4 */2 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read one row
+        run: |
+          url=$(grep -oP "supabaseUrl:\s*'\K[^']+" assets/config.js || true)
+          key=$(grep -oP "supabaseAnonKey:\s*'\K[^']+" assets/config.js || true)
+          if [ -z "$url" ] || [ -z "$key" ]; then
+            echo "assets/config.js has no Supabase address yet; nothing to keep awake."
+            exit 0
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            -H "apikey: $key" -H "Authorization: Bearer $key" \
+            "$url/rest/v1/categories?select=id&limit=1")
+          echo "Supabase answered HTTP $code"
+          test "$code" = "200"

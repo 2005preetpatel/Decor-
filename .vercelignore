@@ -1,0 +1,20 @@
+# Not part of the website. Keeping these out of the deployment makes it
+# smaller, and keeps working files and notes from being served to the public.
+# (api/ must NOT be listed: those are the server functions.)
+.github
+tools
+tests
+supabase
+docs
+bulk
+videos
+photos
+node_modules
+server.js
+.env
+.env.*
+!.env.example
+assets/hero-source-closed.png
+assets/hero-source-open.png
+assets/hero-plate.prompt.md
+package-lock.json

@@ -246,3 +246,15 @@
   .story-link,
   .story-link::after{ transition:none; }
 }
+
+/* Videos on a celebration page sit in the same frames as the photographs. */
+.story-frame video{
+  width:100%;
+  height:auto;
+  display:block;
+  background:#1d1914;
+}
+.story-pair .story-frame video{
+  height:100%;
+  object-fit:cover;
+}
