@@ -1016,14 +1016,15 @@
 
 /* ---------------------------------------------------------- bento gallery --
 
-   A twelve-column bed. The hero takes seven of them and two rows; the two
-   mediums take five each, stacked beside it; the six small cards take four
-   each, three to a row.
+   One horizontal row of equal cards. The section pins to the top of the
+   screen and, as you scroll down, the row slides from right to left until the
+   last card has arrived; then the pin lets go and the page carries on.
 
-   Row height is fixed with `grid-auto-rows` rather than left to the images.
-   That matters more than it looks: the pictures are lazy-loaded, and a grid
-   sized by its content would reflow as each one lands, which would move every
-   ScrollTrigger boundary underneath the scroll that is already running.
+   Every card has a fixed width AND height, set from the viewport rather than
+   from the pictures. That matters more than it looks: the pictures are
+   lazy-loaded, and a row sized by its content would grow as each one landed,
+   which would change how far the row has to travel underneath the scroll that
+   is already running.
    ------------------------------------------------------------------------- */
 
 .ed-bento{
@@ -1039,8 +1040,14 @@
   /* The halo below is wider than the viewport on purpose, and this section
      does not otherwise clip — so it was extending the document and putting a
      horizontal scrollbar on the whole page (1160px of scroll inside a 1009px
-     window). Nothing here needs to escape the section. */
+     window). Nothing here needs to escape the section. It also clips the row
+     as it slides, so cards leave through the screen edge. */
   overflow:hidden;
+
+  /* The pinned stage: one screen tall, the row centred in it. */
+  min-height:100vh;
+  display:flex;
+  align-items:center;
 }
 
 /* One warm light behind the grid, as if the room above it spills down. Very
@@ -1060,22 +1067,25 @@
   pointer-events:none;
 }
 
+/* The track. Wider than the screen; GSAP slides it left. */
 .bento-grid{
+  /* The side of each square card: about 27% of the screen's width, never
+     taller than 58% of its height. */
+  --bento-h:min(clamp(15rem, 27vw, 34rem), 58vh);
   position:relative;
-  display:grid;
-  grid-template-columns:repeat(12, 1fr);
-  grid-auto-rows:clamp(8rem, 13.6vw, 12.4rem);
-  gap:clamp(0.516rem, 0.936vw, 0.946rem);
-  max-width:78rem;
-  margin:0 auto;
+  flex:0 0 auto;
+  display:flex;
+  flex-wrap:nowrap;
+  gap:clamp(0.86rem, 1.9vw, 1.72rem);
+  width:max-content;
+  will-change:transform;
 }
-
-.bento-hero{ grid-column:span 7; grid-row:span 2; }
-.bento-med { grid-column:span 5; }
-.bento-sm  { grid-column:span 4; }
 
 .bento-card{
   position:relative;
+  flex:0 0 auto;
+  height:var(--bento-h);
+  width:var(--bento-h);              /* square */
   margin:0;
   overflow:hidden;             /* the zoom is clipped by the card, always */
   border-radius:30px;
@@ -1174,9 +1184,6 @@
   color:#f6efe2;
   text-shadow:0 1px 10px rgba(20,16,12,.45);
 }
-.bento-hero .bento-name{ font-size:clamp(.66rem, .95vw, .82rem); }
-.bento-hero .bento-index{ font-size:clamp(.56rem, .78vw, .66rem); }
-
 /* Sits out at the right edge until the card is touched. */
 .bento-go{
   margin-left:auto;
@@ -1210,25 +1217,26 @@
 }
 .bento-card:hover .bento-cap::before{ transform:scaleX(1); }
 
-/* Tablet: hero goes full width, everything else pairs off. */
-@media (max-width:1024px){
-  .bento-grid{ grid-template-columns:repeat(6, 1fr); }
-  .bento-hero{ grid-column:span 6; grid-row:span 2; }
-  .bento-med { grid-column:span 3; }
-  .bento-sm  { grid-column:span 3; }
-}
-
-/* Phone: two up, hero still leading. */
+/* Phone: the same row, one square nearly filling the width (the next one
+   peeks in at the edge), with slightly softer corners. */
 @media (max-width:640px){
-  .bento-grid{
-    grid-template-columns:repeat(2, 1fr);
-    grid-auto-rows:clamp(6.4rem, 25vw, 9.2rem);
-  }
-  .bento-hero{ grid-column:span 2; grid-row:span 2; }
-  .bento-med,
-  .bento-sm { grid-column:span 1; }
+  .bento-grid{ --bento-h:min(82vw, 58vh); }
   .bento-card{ border-radius:24px; }
 }
+
+/* No GSAP (blocked, offline) or reduced motion: nothing pins and nothing
+   slides on its own, so the row becomes an ordinary swipeable strip. */
+.ed-bento.is-static{ min-height:0; }
+.ed-bento.is-static .bento-grid{
+  flex:1 1 100%;
+  min-width:0;
+  width:auto;
+  overflow-x:auto;
+  will-change:auto;
+  scroll-snap-type:x proximity;
+  padding-bottom:.6rem;
+}
+.ed-bento.is-static .bento-card{ scroll-snap-align:start; }
 
 @media (hover:none){
   .bento-go{ opacity:1; transform:none; }

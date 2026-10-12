@@ -75,6 +75,8 @@
   }
 </script>
 <link rel="stylesheet" href="assets/hero-scene.css">
+<link rel="stylesheet" href="assets/tailwind.css">
+<link rel="icon" href="data:,">
 <style>
   :root{
     --navy:#0a1230; --navy-2:#0e1838; --navy-3:#050919;
@@ -619,7 +621,6 @@
 
 </footer>
 
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
@@ -783,19 +784,23 @@
 </script>
 
 <script>
-    /* Bento gallery: scroll-driven zoom-out.
+    /* Bento gallery: pinned horizontal scroll.
 
-       Every card starts at 1.15 and unwinds to 1.00 across its own scroll
-       window, so nothing is synchronised — a card near the top of the section
-       finishes long before one near the bottom, which is what stops the grid
-       reading as a single sheet that breathes in unison.
+       The section pins to the top of the screen and the row of cards slides
+       from right to left as you scroll down, until the last card has arrived;
+       then the pin lets go. One tween moves the whole row, `ease: none`, and
+       its scrub is smoothed a little (0.8) so the row glides to a stop
+       instead of snapping to the wheel.
 
-       Scrub is `true` (not a number): the spec asks for the transform to track
-       the scroll position exactly, and any smoothing value would let it lag
-       behind the wheel. `ease: none` for the same reason — with scrub the
-       scroll IS the easing curve. */
+       Each card keeps the soft zoom-out it always had (1.15 -> 1, caption
+       rising in) — but now it plays as the card travels in from the right
+       edge, driven by the row's own movement (`containerAnimation`) rather
+       than by the page's vertical position, which no longer moves while the
+       section is pinned. */
     (function bento() {
-        const cards = [...document.querySelectorAll('.ed-bento .bento-card')];
+        const section = document.querySelector('.ed-bento');
+        const track = section && section.querySelector('.bento-grid');
+        const cards = track ? [...track.querySelectorAll('.bento-card')] : [];
         if (!cards.length) return;
 
         const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -804,11 +809,11 @@
 
                The CSS ships the cards at scale(1.15)/opacity .9 with the
                titles at opacity 0, because GSAP is what animates them out of
-               that state. Returning early without undoing it — which is what
-               this did — left a permanently dim, over-zoomed grid with no
-               captions whenever the CDN was slow, blocked or offline. The
-               reduced-motion media query covers its own case in CSS; a failed
-               script load has no such fallback, so it is done here. */
+               that state. Returning early without undoing it left a
+               permanently dim, over-zoomed row with no captions whenever the
+               CDN was slow, blocked or offline. The row becomes a plain
+               swipeable strip instead of a pinned one. */
+            section.classList.add('is-static');
             cards.forEach(function (card) {
                 const media = card.querySelector('.bento-media');
                 const cap = card.querySelector('.bento-cap');
@@ -823,25 +828,46 @@
 
         gsap.registerPlugin(ScrollTrigger);
 
-        cards.forEach((card) => {
+        /* How far the row has to travel: its own width, minus the room that
+           is already on screen between the section's side paddings. Read
+           live, so a resize or a late image cannot leave it stale. */
+        function distance() {
+            const cs = getComputedStyle(section);
+            const room = section.clientWidth
+                - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            return Math.max(0, Math.round(track.scrollWidth - room));
+        }
+
+        const slide = gsap.to(track, {
+            x: function () { return -distance(); },
+            ease: 'none',
+            scrollTrigger: {
+                trigger: section,
+                start: 'top top',
+                end: function () { return '+=' + distance(); },
+                pin: true,
+                pinSpacing: true,
+                scrub: 0.8,
+                invalidateOnRefresh: true,
+                /* Same reasoning as before: the hero pin is measured last and
+                   its spacer only then grows the document, so everything
+                   below it refreshes after it. */
+                refreshPriority: -2
+            }
+        });
+
+        cards.forEach(function (card) {
             const media = card.querySelector('.bento-media');
             const cap = card.querySelector('.bento-cap');
 
             const tl = gsap.timeline({
                 scrollTrigger: {
                     trigger: card,
-                    start: 'top 85%',      // begins as the card crosses 85vh
-                    end: 'bottom 25%',     // settled once its base reaches 25vh
+                    containerAnimation: slide,
+                    start: 'left 94%',     // begins as the card's edge enters
+                    end: 'left 58%',       // settled once it is well inside
                     scrub: true,
-                    invalidateOnRefresh: true,
-                    /* The hero pin sits at refreshPriority -1, so it is
-                       measured last — and its pin-spacer only grows the
-                       document once it has been. Anything below it that
-                       refreshes earlier reads a page roughly 3000px short and
-                       lands its start/end far too high. -2 puts these after
-                       the pin, so they measure the document that actually
-                       exists. */
-                    refreshPriority: -2
+                    invalidateOnRefresh: true
                 }
             });
 
