@@ -620,7 +620,7 @@
 
       const layout = h('select', { 'aria-label': 'Layout on the celebration page', disabled: m.type === 'video' },
         ['wide', 'tall', 'half'].map(function (v) {
-          return h('option', { value: v, selected: m.layout === v, text: { wide: 'Wide (full width)', tall: 'Tall (full width)', half: 'Half (pairs with the next half)' }[v] });
+          return h('option', { value: v, selected: m.layout === v, text: { wide: 'Auto (fits the rows)', tall: 'Big (its own full row)', half: 'Auto (fits the rows)' }[v] });
         }));
       layout.addEventListener('change', function () { updateMedia(m, { layout: layout.value }); });
 
@@ -744,7 +744,7 @@
         project_id: ed.p.id, type: item.kind, public_id: out.public_id, url: out.secure_url, thumb_url: thumb,
         width: out.width || null, height: out.height || null, duration: out.duration || null,
         bytes: out.bytes || item.file.size, format: out.format || extOf(item.file.name),
-        layout: out.width && out.height && out.height > out.width * 1.05 && item.kind === 'image' ? 'tall' : 'wide',
+        layout: 'wide',
         sort_order: order,
       };
       const r = await sb.from('media').insert(row).select('*').single();

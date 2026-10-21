@@ -12,8 +12,10 @@
      - Until supabaseUrl is set in assets/config.js this file does nothing.
      - If the database cannot be reached, the sample content already in the
        HTML stays exactly as it is.
-     - A section is only replaced when the database actually has something
-       for it (unless showDemoContent is false — see config.js).
+     - With showDemoContent on (config.js), real photos come first and the
+       sample content fills the remaining places, so the page never looks
+       empty while content is still being added. With it off, only real
+       content is shown (a section with nothing real is hidden).
      - Every value from the database is escaped before it touches the page.
 
    The last answer is kept in localStorage so a returning visitor sees the
@@ -73,7 +75,7 @@
   api.fetchList = function () { return get(LIST); };
 
   api.fetchProject = function (slug) {
-    return get('projects?select=id,slug,title,description,location,occasion,credits,is_story,'
+    return get('projects?select=id,slug,title,description,location,occasion,credits,is_story,category:categories(name),'
       + 'media:media!media_project_id_fkey(id,type,public_id,url,thumb_url,width,height,duration,alt,layout,sort_order)'
       + '&slug=eq.' + encodeURIComponent(slug)
       + '&status=eq.published&media.order=sort_order.asc&limit=1')
@@ -115,16 +117,16 @@
 
   function sizes(w) { return w.join(','); }
 
+  /* The reel shows photographs only. A project whose cover is a video appears
+     here as a still frame from it; the video itself plays on the project page
+     that opens on click. */
   function reelSlide(p, i) {
     const m = p.cover, alt = esc(m.alt || p.title);
     const first = i === 0;
-    if (m.type === 'video') {
-      return '<video class="ed-slide' + (first ? ' is-on' : '') + '" muted loop playsinline preload="none"'
-        + ' poster="' + esc(M.posterUrl(m, 1500)) + '" data-src="' + esc(M.videoUrl(m, 1280)) + '"'
-        + ' aria-label="' + alt + '"></video>';
-    }
-    return '<img class="ed-slide' + (first ? ' is-on' : '') + '" src="' + esc(M.imageUrl(m, 1500)) + '"'
-      + (M.usable(m) ? ' srcset="' + esc(M.srcset(m, [640, 960, 1500])) + '"'
+    const still = m.type === 'video';
+    const src = still ? M.posterUrl(m, 1500) : M.imageUrl(m, 1500);
+    return '<img class="ed-slide' + (first ? ' is-on' : '') + '" data-slug="' + esc(p.slug) + '" src="' + esc(src) + '"'
+      + (!still && M.usable(m) ? ' srcset="' + esc(M.srcset(m, [640, 960, 1500])) + '"'
         + ' sizes="(min-width: 960px) 948px, 100vw"' : '')
       + (first ? ' fetchpriority="high"' : ' loading="lazy"') + ' decoding="async" alt="' + alt + '">';
   }
@@ -141,7 +143,8 @@
         + (M.usable(m) ? ' srcset="' + esc(M.srcset(m, [400, 640, 900])) + '"'
           + ' sizes="(max-width:640px) 82vw, 27vw"' : '')
         + ' width="' + w + '" height="' + h + '" loading="lazy" decoding="async" alt="' + alt + '">';
-    return '<figure class="bento-card"><div class="bento-media">' + inner + '</div>'
+    return '<figure class="bento-card" data-slug="' + esc(p.slug) + '" tabindex="0" role="link"'
+      + ' aria-label="' + esc(p.title) + ', see all photos and videos"><div class="bento-media">' + inner + '</div>'
       + '<figcaption class="bento-cap"><span class="bento-index">' + idx + '</span>'
       + '<span class="bento-name">' + esc(p.category.name) + '</span>'
       + '<span class="bento-go" aria-hidden="true">&#8594;</span></figcaption></figure>';
@@ -166,25 +169,76 @@
 
   function section(sel) { return document.querySelector(sel); }
 
-  function apply(box, items, build, wrapSel) {
+  /* The sample content that ships in the HTML, captured once, before anything
+     has been replaced. With showDemoContent on, it fills whatever room the
+     real content leaves, so the page keeps its full look from the first photo. */
+  const SAMPLE = { reel: [], bento: [], stories: [] };
+  const mix = cfg.showDemoContent !== false;
+
+  function snapshot() {
+    [['#edReel', 'reel'], ['.ed-bento .bento-grid', 'bento'], ['.ed-stories .ed-three', 'stories']]
+      .forEach(function (pair) {
+        const el = section(pair[0]);
+        if (el) SAMPLE[pair[1]] = Array.prototype.map.call(el.children, function (c) { return c.cloneNode(true); });
+      });
+  }
+
+  function nodes(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html.trim();
+    return Array.prototype.slice.call(t.content.children);
+  }
+  function copies(list) { return list.map(function (n) { return n.cloneNode(true); }); }
+
+  function put(box, els, wrapSel) {
     const el = section(box);
     const wrap = wrapSel && section(wrapSel);
     if (!el) return;
-    if (items.length) {
-      el.innerHTML = items.map(build).join('');
+    if (els.length) {
+      el.replaceChildren.apply(el, els);
       if (wrap) wrap.hidden = false;
-    } else if (cfg.showDemoContent === false) {
-      el.innerHTML = '';
-      if (wrap) wrap.hidden = true;
+    } else {
+      el.replaceChildren();
+      if (wrap) wrap.hidden = true;     // nothing to show here (only when samples are switched off)
     }
-    // else: leave the sample content that is already in the HTML.
   }
 
   function render(projects) {
     const s = pick(projects);
-    apply('#edReel', s.reel, reelSlide, '.ed-reel');
-    apply('.ed-bento .bento-grid', s.bento, bentoCard, '.ed-bento');
-    apply('.ed-stories .ed-three', s.stories, storyCard, '.ed-stories');
+
+    // Slideshow: real photos first, samples fill up to six slides.
+    const reelReal = [];
+    s.reel.forEach(function (p, i) { nodes(reelSlide(p, i)).forEach(function (n) { reelReal.push(n); }); });
+    const reelAll = reelReal.concat(mix ? copies(SAMPLE.reel).slice(0, Math.max(0, 6 - reelReal.length)) : []);
+    reelAll.forEach(function (n, i) { n.classList.toggle('is-on', i === 0); });
+    put('#edReel', reelAll, '.ed-reel');
+
+    // Gallery row: a real card replaces the sample card with the same heading;
+    // headings with no real project yet keep their sample card.
+    const realByName = new Map();
+    s.bento.forEach(function (p) { realByName.set(p.category.name.trim().toLowerCase(), nodes(bentoCard(p, 0))[0]); });
+    let bentoAll = [];
+    if (mix) {
+      SAMPLE.bento.forEach(function (n) {
+        const key = n.querySelector('.bento-name').textContent.trim().toLowerCase();
+        const real = realByName.get(key);
+        if (real) { bentoAll.push(real); realByName.delete(key); }
+        else bentoAll.push(n.cloneNode(true));
+      });
+      realByName.forEach(function (n) { bentoAll.push(n); });      // categories the samples never had
+    } else {
+      bentoAll = s.bento.map(function (p) { return nodes(bentoCard(p, 0))[0]; });
+    }
+    bentoAll.forEach(function (n, i) { n.querySelector('.bento-index').textContent = String(i + 1).padStart(2, '0'); });
+    put('.ed-bento .bento-grid', bentoAll, '.ed-bento');
+
+    // Real Celebrations: real stories first, samples fill up to three.
+    const storyReal = [];
+    s.stories.forEach(function (p) { nodes(storyCard(p)).forEach(function (n) { storyReal.push(n); }); });
+    put('.ed-stories .ed-three',
+      storyReal.concat(mix ? copies(SAMPLE.stories).slice(0, Math.max(0, 3 - storyReal.length)) : []),
+      '.ed-stories');
+
     api.rendered = true;
     window.dispatchEvent(new Event('opula:gallery'));
   }
@@ -194,8 +248,26 @@
   const onHome = !!(section('#edReel') || section('.ed-bento'));
   if (!onHome) return;                 // e.g. story.html: only the API above is wanted
 
+  /* A click on a real project (the reel's current picture, or a gallery card)
+     opens its page with every photo and video. Sample cards carry no slug and
+     stay inert. One delegated listener, so re-rendering never needs rewiring. */
+  function open(slug) { location.href = 'story.html?s=' + encodeURIComponent(slug); }
+  document.addEventListener('click', function (e) {
+    const card = e.target.closest && e.target.closest('.bento-card[data-slug]');
+    if (card) { open(card.dataset.slug); return; }
+    const stage = e.target.closest && e.target.closest('#edReel');
+    const on = stage && stage.querySelector('.ed-slide.is-on[data-slug]');
+    if (on) open(on.dataset.slug);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest && e.target.closest('.bento-card[data-slug]');
+    if (card && card === e.target) { e.preventDefault(); open(card.dataset.slug); }
+  });
+
   // Hold the sample pictures back until the real ones are ready, so they are
   // never seen being replaced. The timeout is the safety net.
+  snapshot();                          // keep the samples before anything is replaced
   root.classList.add('cms-wait');
   const release = function () { root.classList.remove('cms-wait'); };
   setTimeout(release, 3500);

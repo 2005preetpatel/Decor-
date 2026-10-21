@@ -39,7 +39,7 @@
 
   function videoUrl(m, w) {
     if (!usable(m)) return m && m.url || '';
-    return base('video') + 'f_auto:video,q_auto,c_limit,w_' + (w || 1280) + '/' + pid(m);
+    return base('video') + 'f_auto:video,q_auto:good,c_limit,w_' + (w || 1280) + '/' + pid(m);
   }
 
   function srcset(m, widths) {

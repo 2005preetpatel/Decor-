@@ -112,7 +112,7 @@ cloudName: 'your-cloud-name',
 
 Until `supabaseUrl` is filled in, the website behaves exactly as before (built-in sample content, no
 network calls). When it is filled in, the sample content is replaced section by section as soon as
-real projects exist. To stop sample photos ever appearing at launch, set `showDemoContent: false`.
+real projects exist. With `showDemoContent: true` (the default) your real photos come first and the sample photos fill the remaining places, so the page keeps its full look while you add projects. Set it to `false` at launch so only real content shows.
 
 ### 4. Try it on your computer **(you)**
 

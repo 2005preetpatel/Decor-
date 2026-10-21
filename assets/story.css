@@ -125,7 +125,7 @@
    The column is also narrower than it was — 54rem against 64 — which is what
    keeps a flush stack from turning into a wall. */
 .story-frames{
-  max-width:54rem;
+  max-width:80rem;
   margin:0 auto;
   padding:0 clamp(0.645rem, 1.95vw, 1.29rem);
   display:flex;
@@ -257,4 +257,130 @@
 .story-pair .story-frame video{
   height:100%;
   object-fit:cover;
+}
+
+/* Rows of photographs packed to one height, edge to edge (see justify() in
+   story.js). Each frame's flex-grow is its width/height ratio, so a portrait
+   and a landscape share a row at the same height; a hairline between them. */
+.story-row{
+  display:flex;
+  gap:3px;
+  width:100%;
+  margin:0 auto 3px;
+  align-items:stretch;
+}
+.story-row .story-frame{ flex-basis:0; min-width:0; display:flex; }
+.story-row .story-frame img{
+  height:100%;
+  object-fit:cover;
+}
+.story-row .story-frame:nth-child(2){ transition-delay:.1s; }
+.story-row .story-frame:nth-child(3){ transition-delay:.2s; }
+.story-frames > .story-frame-wide{ margin-bottom:3px; }
+
+/* ---------------------------------------------------------- photo effects -- */
+
+/* The photograph settles from a slight zoom as its frame arrives (story.js adds
+   .is-in to the frame). The zoom is on the image inside the frame, which
+   already clips it, so nothing shifts in the layout. */
+.story-frame img{
+  cursor:zoom-in;
+  transform:scale(1.1);
+  transition:transform 1.7s cubic-bezier(.16,1,.3,1), filter .6s ease;
+}
+.story-frame.is-in img{ transform:scale(1); }
+
+/* Photographs in a row arrive one after another. */
+.story-row .story-frame:nth-child(2){ transition-delay:.18s; }
+.story-row .story-frame:nth-child(3){ transition-delay:.36s; }
+.story-row .story-frame:nth-child(2) img{ transition-delay:.18s, 0s; }
+.story-row .story-frame:nth-child(3) img{ transition-delay:.36s, 0s; }
+
+/* Hover: the photograph under the pointer draws in slowly; the rest recede. */
+@media (hover:hover){
+  .story-frame.is-in:hover img{
+    transform:scale(1.045);
+    transition:transform 1.1s cubic-bezier(.16,1,.3,1), filter .6s ease;
+    transition-delay:0s;
+  }
+  .story-frames:has(.story-frame:hover) .story-frame:not(:hover) img{
+    filter:brightness(.72) saturate(.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .story-frame img,
+  .story-frame.is-in img,
+  .story-frame.is-in:hover img{ transform:none; transition:none; }
+}
+
+/* ------------------------------------------------------- full-screen viewer -- */
+
+.lb{
+  position:fixed;
+  inset:0;
+  z-index:2147483000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(20,16,12,.95);
+  animation:lb-in .35s ease both;
+}
+.lb[hidden]{ display:none; }
+@keyframes lb-in{ from{ opacity:0; } to{ opacity:1; } }
+html.lb-open{ overflow:hidden; }
+
+.lb-img{
+  max-width:min(92vw, 1600px);
+  max-height:88vh;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  opacity:0;
+  transform:scale(.97);
+  transition:opacity .45s ease, transform .6s cubic-bezier(.16,1,.3,1);
+  cursor:default;
+}
+.lb-img.is-in{ opacity:1; transform:none; }
+
+.lb-close,
+.lb-nav{
+  position:absolute;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
+  color:#f6f0e6;
+  cursor:pointer;
+  transition:background .3s ease;
+}
+.lb-close:hover,
+.lb-nav:hover{ background:rgba(255,255,255,.2); }
+.lb-close:focus-visible,
+.lb-nav:focus-visible{ outline:2px solid #c9a961; outline-offset:2px; }
+.lb-close{ top:1rem; right:1rem; width:2.9rem; height:2.9rem; font-size:1.7rem; line-height:1; }
+.lb-nav{ top:50%; width:3.1rem; height:3.1rem; margin-top:-1.55rem; font-size:1.35rem; }
+.lb-nav[hidden]{ display:none; }
+.lb-prev{ left:1rem; }
+.lb-next{ right:1rem; }
+.lb-count{
+  position:absolute;
+  bottom:1rem;
+  left:0;
+  right:0;
+  margin:0;
+  text-align:center;
+  font:600 .7rem/1 'Manrope', sans-serif;
+  letter-spacing:.2em;
+  color:rgba(246,240,230,.7);
+}
+@media (max-width:680px){
+  .lb-nav{ top:auto; bottom:.8rem; margin-top:0; }
+  .lb-prev{ left:.8rem; }
+  .lb-next{ right:.8rem; }
+  .lb-img{ max-width:96vw; max-height:80vh; }
+}
+@media (prefers-reduced-motion: reduce){
+  .lb, .lb-img{ animation:none; transition:none; }
 }

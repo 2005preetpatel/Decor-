@@ -15,15 +15,18 @@
 
 window.OPULA_CONFIG = {
   // Supabase: Project Settings -> API
-  supabaseUrl: '',          // e.g. https://abcdxyz.supabase.co
-  supabaseAnonKey: '',      // the "anon" / "publishable" key (NOT service_role)
+  supabaseUrl: 'https://bqlqgpoktlxqzuydkbww.supabase.co',
+  supabaseAnonKey: 'sb_publishable_6n6cTHso5eLcCoBFeJwraQ_ECqLol8k',   // the public "publishable" key (NOT the secret / service_role key)
 
   // Cloudinary: Dashboard -> top-left "Cloud name"
-  cloudName: '',
+  cloudName: 'pkhx9onz',
 
-  // When the database has nothing published for a section, keep showing the
-  // built-in sample content there? Set to false at launch so sample photos
-  // never appear next to the client's real work.
+  // true : your real photos come FIRST and the built-in sample photos fill the
+  //        remaining places (slideshow 6, gallery 9, celebrations 3), so the
+  //        page keeps its full look while you are still adding projects. Each
+  //        real project pushes a sample out.
+  // false: show ONLY real content. Set this when you launch, so sample photos
+  //        never appear next to the client's real work.
   showDemoContent: true,
 
   // Admin page upload limits, in megabytes. Cloudinary's FREE plan rejects

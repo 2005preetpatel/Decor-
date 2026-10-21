@@ -708,7 +708,7 @@
            again. 260 + 340 leaves the picture holding perfectly still for
            about 1.8s, and the change itself is slow enough to read as a
            dissolve rather than a cut. */
-        const IN = 420;    // ms for the next picture to cover the one before it
+        const IN = 900;    // ms for the next picture to cover the one before it
         const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let at = 0, busy = false;
 
@@ -802,7 +802,7 @@
            that on screen before it is replaced. Change this one number to
            retune the pace; OUT and IN above only need touching if it goes
            below about 1.2s. */
-        const EVERY = 2400;
+        const EVERY = 5000;
         const reelEl = stage.closest('.ed-reel');
         let timer = null;
 
@@ -1120,6 +1120,15 @@
 </script>
 
 <script src="assets/hero-scene.js"></script>
+<script>
+    /* Diagnostic only: loads assets/perf-probe.js when the address has
+       ?perf=1. Without it nothing happens and nothing extra is downloaded. */
+    if (/[?&]perf=1(&|$)/.test(location.search)) {
+        var probe = document.createElement('script');
+        probe.src = 'assets/perf-probe.js';
+        document.body.appendChild(probe);
+    }
+</script>
 
 </body>
 </html>

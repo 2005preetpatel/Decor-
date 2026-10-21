@@ -1432,7 +1432,7 @@
   opacity:1;
   /* The only transition anyone sees: the incoming picture coming up over the
      outgoing one. Must match IN in the reel script. */
-  transition:opacity .42s cubic-bezier(.33,0,.2,1);
+  transition:opacity .9s cubic-bezier(.33,0,.2,1);
 }
 
 /* Nothing sits on the picture.
@@ -2457,3 +2457,8 @@ html.cms-wait .ed-stories .ed-three{ visibility:hidden; }
 /* Few categories: the whole row already fits on screen, so there is nothing
    to slide. It stays put, centred, and the section does not pin. */
 .ed-bento.is-fit .bento-grid{ margin:0 auto; }
+
+/* Real projects open their page on click. */
+.ed-slide[data-slug],
+.bento-card[data-slug]{ cursor:pointer; }
+.bento-card[data-slug]:focus-visible{ outline:2px solid #c9a961; outline-offset:3px; }
